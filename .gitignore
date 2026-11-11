@@ -1,0 +1,8 @@
+app/build/
+app/FlightFrame.apk
+*.keystore
+platform-tools/
+tools/platform-tools/
+tools/FlightFrame.apk
+.DS_Store
+__pycache__/

@@ -1,0 +1,39 @@
+name: Build app
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - name: Android SDK pieces
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-29" "build-tools;34.0.0" > /dev/null
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > app/flightframe.keystore; fi
+      - name: Build
+        run: ANDROID_SDK=$ANDROID_HOME KEYSTORE=$PWD/app/flightframe.keystore bash app/build.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: FlightFrame-apk, path: app/FlightFrame.apk }
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            app/FlightFrame.apk
+            tools/install.sh
+            tools/install.ps1
+            tools/make_map.py

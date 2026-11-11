@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flight Frame — live planes overhead, on a photo frame</title>
+<meta name="description" content="Turn a cheap Android photo frame into a live display of the planes flying over your home. Free and open source.">
+<meta property="og:title" content="Flight Frame">
+<meta property="og:description" content="Live planes overhead, on a photo frame. Free and open source.">
+<meta property="og:image" content="img/display-landscape.png">
+<link rel="icon" href="img/icon.png">
+<style>
+:root{--bg:#07090d;--panel:#10141b;--line:#1d2430;--text:#eef2f7;--dim:#8b96a6;--faint:#566173;--acc:#ffb238;--cyan:#4fd1ff}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+header{position:sticky;top:0;background:rgba(7,9,13,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:5}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;font-size:14px;color:var(--text);text-decoration:none}
+.brand img{width:30px;height:30px;border-radius:8px}
+.brand b{color:var(--acc)}
+nav a{color:var(--dim);text-decoration:none;margin-left:22px;font-size:15px}
+nav a:hover{color:var(--text)}
+.hero{padding:84px 0 40px;text-align:center;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;left:50%;top:-260px;width:900px;height:900px;transform:translateX(-50%);background:repeating-radial-gradient(circle,transparent 0 79px,rgba(79,209,255,.07) 80px 81px);mask:radial-gradient(circle,#000 30%,transparent 70%);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);pointer-events:none}
+.kicker{letter-spacing:5px;text-transform:uppercase;color:var(--dim);font-size:13px}
+.kicker b{color:var(--acc)}
+h1{font-size:clamp(40px,6.4vw,78px);line-height:1.02;letter-spacing:-2px;margin:14px 0 18px}
+.lead{font-size:20px;color:var(--dim);max-width:680px;margin:0 auto 30px}
+.cta{display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-block;padding:13px 22px;border-radius:12px;font-weight:700;text-decoration:none;border:1px solid var(--line);color:var(--text);background:var(--panel)}
+.btn.acc{background:var(--acc);border-color:var(--acc);color:#111}
+.shot{margin:54px auto 0;max-width:1000px;border-radius:22px;border:1px solid var(--line);box-shadow:0 40px 120px -40px rgba(79,209,255,.25);display:block;width:100%}
+section{padding:80px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(30px,4vw,44px);letter-spacing:-1px;margin:0 0 12px}
+.sub{color:var(--dim);max-width:680px;margin:0 0 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}
+.card h3{margin:10px 0 6px;font-size:19px}
+.card p{margin:0;color:var(--dim);font-size:15.5px}
+.ico{width:40px;height:40px;border-radius:11px;background:rgba(255,178,56,.12);display:flex;align-items:center;justify-content:center}
+.ico svg{width:22px;height:22px;stroke:var(--acc)}
+.themes img{width:100%;border-radius:14px;border:1px solid var(--line)}
+.phones{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.phones img{width:100%;border-radius:26px;border:6px solid #1a212c}
+@media(max-width:760px){.phones{grid-template-columns:repeat(2,1fr)} nav a:not(.gh){display:none}}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+@media(max-width:860px){.split{grid-template-columns:1fr}}
+.split img{width:100%;border-radius:18px;border:1px solid var(--line)}
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 22px 56px}
+ol.steps li:before{content:counter(s);position:absolute;left:0;top:-2px;width:36px;height:36px;border-radius:50%;background:var(--acc);color:#111;font-weight:800;display:flex;align-items:center;justify-content:center}
+ol.steps b{display:block;font-size:18px}
+ol.steps span{color:var(--dim)}
+code,pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
+pre{background:#0b0f16;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;color:#c9d4e3}
+table{width:100%;border-collapse:collapse;font-size:15.5px}
+td,th{border-bottom:1px solid var(--line);padding:12px 10px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase}
+.ok{color:#5be38a;font-weight:700}.mid{color:var(--acc);font-weight:700}.no{color:#ff6b6b;font-weight:700}
+.src{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.src div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.src b{display:block}.src span{color:var(--dim);font-size:14.5px}
+footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--faint);font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="brand" href="#"><img src="img/icon.png" alt="">Flight <b>Frame</b></a>
+  <nav><a href="#features">Features</a><a href="#phone">Phone app</a><a href="#hardware">Hardware</a><a href="#install">Install</a><a class="gh" href="https://github.com/anguslemoine-maker/FlightFrame">GitHub</a></nav>
+</div></header>
+
+<div class="hero"><div class="wrap">
+  <div class="kicker">Overhead · <b>right now</b></div>
+  <h1>The planes above your home,<br>on a picture frame.</h1>
+  <p class="lead">Flight Frame turns a cheap Android photo frame into a live flight display: airline, route, aircraft and a radar map of the sky around you. Free, open source, no subscriptions.</p>
+  <div class="cta"><a class="btn acc" href="https://github.com/anguslemoine-maker/FlightFrame/releases/latest">Download</a><a class="btn" href="#install">How to install</a></div>
+  <img class="shot" src="img/display-landscape.png" alt="Flight Frame showing a KLM flight from London City to Amsterdam, with a radar map">
+</div></div>
+
+<section id="features"><div class="wrap">
+  <h2>Everything at a glance</h2>
+  <p class="sub">Look up when you hear a plane, then glance at the frame.</p>
+  <div class="grid">
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></div><h3>The real aircraft</h3><p>Each plane is drawn to scale for its type, from an ATR to an A380, in the airline's colours with its logo on the tail. Coastguard, military, police and medical flights get their own badges.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 17c4-8 14-8 18 0"/><circle cx="3" cy="17" r="1.5"/><circle cx="21" cy="17" r="1.5"/></svg></div><h3>Where it's going</h3><p>Origin and destination with city and country, and an arc showing how far along the flight is. Routes are cross-checked against the plane's live position, plus Schiphol's official schedule if you like.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg></div><h3>Radar with your map</h3><p>Every plane nearby on a dark map of your area: coastline, lakes, motorways, runways and town names. Generate the map for any location.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M6 19h11a4 4 0 0 0 0-8 6 6 0 0 0-11.5-1.5A4.5 4.5 0 0 0 6 19z"/></svg></div><h3>Quiet sky? Weather.</h3><p>When nothing is overhead: big clock, current weather, a 24-hour rain chart, sunrise and sunset, and when you can see the space station.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2"/><circle cx="12" cy="12" r="4"/></svg></div><h3>Sleeps at night</h3><p>A screen schedule per weekday, night dimming, and a frame app that starts on boot and quietly restarts the display if anything ever hangs.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h7"/></svg></div><h3>Your way</h3><p>Six themes and accent colours, metric/imperial/aviation units, 12 or 24-hour clock, portrait or landscape (it follows the frame's tilt sensor), range and altitude filters.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap themes">
+  <h2>Six themes</h2>
+  <p class="sub">Midnight, Departures, Daylight, Ocean, Amber and Radar — the map recolours itself to match.</p>
+  <img src="img/themes.png" alt="The six themes side by side">
+</div></section>
+
+<section id="phone"><div class="wrap">
+  <h2>A phone app, built into the frame</h2>
+  <p class="sub">Open the frame's address on your phone and add it to your home screen. No app store, no account — it only works on your own wifi, with an optional PIN.</p>
+  <div class="phones"><img src="img/phone-home.png" alt="Home: screen on/off, brightness, live view"><img src="img/phone-display.png" alt="Display settings: themes and units"><img src="img/phone-schedule.png" alt="Schedule and night dimming"><img src="img/phone-frame.png" alt="Frame status"></div>
+  <div class="grid" style="margin-top:26px">
+    <div class="card"><h3>Control</h3><p>Screen on/off, brightness, reload, a live view of what the frame shows, and the flights overhead right now.</p></div>
+    <div class="card"><h3>Customise</h3><p>Theme, accent, units, clock, orientation, which panels to show, how many flights, which plane to feature, range and altitude filters.</p></div>
+    <div class="card"><h3>Schedule</h3><p>Screen on/off times per weekday and night dimming. Turning it off from the phone sticks until the next scheduled change.</p></div>
+    <div class="card"><h3>Look after it</h3><p>Wifi signal, temperature, memory, uptime, logs; update the display, back up and restore settings, change location, upload a new map.</p></div>
+  </div>
+</div></section>
+
+<section id="hardware"><div class="wrap">
+  <h2>Which frame?</h2>
+  <p class="sub">You need a frame that runs full Android and allows a developer (ADB) connection. Flight Frame replaces the frame's own photo app.</p>
+  <table>
+    <tr><th>Frame</th><th>Status</th><th>Notes</th></tr>
+    <tr><td><b>Arktronic AK-W215B</b><br>21.5", 1920×1080</td><td class="ok">Tested</td><td>Works fully, including real screen sleep. The project was built on this one.</td></tr>
+    <tr><td><b>Frameo frames</b><br>(Denver, Aeezo, …)</td><td class="mid">Likely</td><td>Settings → About → Beta program → ADB access. Older ones may need a WebView update first.</td></tr>
+    <tr><td><b>Android tablets</b></td><td class="ok">Works</td><td>Android 5 or newer. Put it in a frame or on a stand.</td></tr>
+    <tr><td>Nixplay, Aura, Meural, Echo Show, Nest Hub</td><td class="no">No</td><td>Locked down: no developer access.</td></tr>
+  </table>
+</div></section>
+
+<section id="install"><div class="wrap split">
+  <div>
+    <h2>Install in five minutes</h2>
+    <ol class="steps">
+      <li><b>Turn on developer access</b><span>On the frame: Developer options → USB debugging (and ADB over network). Note its IP address.</span></li>
+      <li><b>Download the release</b><span>FlightFrame.apk and the installer for your computer, into one folder.</span></li>
+      <li><b>Run the installer</b><span>It fetches Android's adb tool, installs the app and makes it start on boot.</span></li>
+      <li><b>Open the phone app</b><span>Go to the address it prints (like http://192.168.1.50:8080) and Add to Home Screen.</span></li>
+      <li><b>Set your location</b><span>Search for your town. Optionally make a radar map for it.</span></li>
+    </ol>
+  </div>
+  <div>
+<pre># Mac / Linux
+bash install.sh 192.168.1.50
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File install.ps1 192.168.1.50
+
+# Radar map for your location
+pip install mapbox-vector-tile pillow
+python3 make_map.py --lat 40.7128 --lon -74.006 --out mymap</pre>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Free data, credited</h2>
+  <p class="sub">No subscriptions. Flight Frame combines open sources and checks them against each other.</p>
+  <div class="src">
+    <div><b>adsb.lol</b><span>Live aircraft positions from a community receiver network (ODbL)</span></div>
+    <div><b>adsbdb · hexdb</b><span>Routes, airlines and aircraft details</span></div>
+    <div><b>Schiphol Flight API</b><span>Official routes for Amsterdam flights (optional, free key)</span></div>
+    <div><b>Open-Meteo</b><span>Weather and rain forecast (CC BY 4.0)</span></div>
+    <div><b>CelesTrak</b><span>Space station orbit data</span></div>
+    <div><b>OpenStreetMap · OpenFreeMap</b><span>The radar map. © OpenStreetMap contributors</span></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  Flight Frame is a free, open-source hobby project (MIT License). It isn't affiliated with any airline, airport, frame maker or other flight display product. Airline names and logos belong to their owners. Flight data is for fun only.
+  · <a href="https://github.com/anguslemoine-maker/FlightFrame">Source on GitHub</a>
+</div></footer>
+</body>
+</html>

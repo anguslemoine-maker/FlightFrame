@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flight Frame">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Flight Frame</title>
+<style>
+:root{--bg:#0b0f16;--card:#131a24;--card2:#19212d;--line:#232d3b;--text:#eef2f7;--dim:#8b96a6;--faint:#566173;--acc:#ffb238;--cyan:#4fd1ff;--green:#5be38a;--red:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",sans-serif}
+body{padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 92px)}
+h1{font-size:28px;margin:6px 2px 2px;letter-spacing:-.5px}
+.sub{color:var(--dim);font-size:14px;margin:0 2px 14px;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--faint);display:inline-block}
+.dot.ok{background:var(--green)} .dot.bad{background:var(--red)}
+.card{background:var(--card);border-radius:18px;padding:14px 16px;margin-bottom:14px}
+.card h2{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:2px 0 10px;font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row .l{flex:1;min-width:0}
+.row .l small{display:block;color:var(--dim);font-size:13px;margin-top:2px}
+input[type=text],input[type=number],input[type=password],input[type=time],select{background:var(--card2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:16px;max-width:170px;width:100%}
+input[type=time]{max-width:140px;min-width:124px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.sw{position:relative;width:52px;height:31px;flex:none}
+.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;background:#2a3442;border-radius:31px;transition:.2s}
+.sw span:before{content:"";position:absolute;width:27px;height:27px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}
+.sw input:checked+span{background:var(--green)}
+.sw input:checked+span:before{transform:translateX(21px)}
+.btn{background:var(--card2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-size:15px;font-weight:600;cursor:pointer}
+.btn.acc{background:var(--acc);color:#111;border-color:var(--acc)}
+.btn.red{color:var(--red)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.big .btn{padding:16px 10px;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.big .btn svg{width:26px;height:26px}
+.big .btn.on{background:var(--acc);color:#111;border-color:var(--acc)}
+#shot{width:100%;border-radius:12px;display:block;background:#000;min-height:120px;object-fit:contain;max-height:62vh}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 12px;border-radius:20px;background:var(--card2);border:1px solid var(--line);font-size:14px;cursor:pointer}
+.chip.on{border-color:var(--acc);color:var(--acc)}
+.themes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.th{border-radius:12px;padding:10px;border:2px solid transparent;cursor:pointer;font-size:13px;font-weight:600}
+.th.on{border-color:var(--acc)}
+.th i{display:block;height:34px;border-radius:7px;margin-bottom:6px;position:relative;overflow:hidden}
+.th i b{position:absolute;right:6px;bottom:6px;width:16px;height:16px;border-radius:50%}
+.days{display:flex;gap:6px}
+.days span{flex:1;text-align:center;padding:8px 0;border-radius:9px;background:var(--card2);border:1px solid var(--line);font-size:13px;cursor:pointer}
+.days span.on{background:var(--acc);color:#111;border-color:var(--acc)}
+.list .f{display:grid;grid-template-columns:86px 1fr auto;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.list .f:first-child{border-top:0}
+.list .cs{font-weight:700;font-family:ui-monospace,Menlo,monospace}
+.list .rt{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list .al{color:var(--dim);text-align:right}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv div:nth-child(odd){color:var(--dim)}
+.kv div:nth-child(even){text-align:right;word-break:break-all}
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(11,15,22,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px)}
+nav a{flex:1;text-align:center;color:var(--faint);font-size:11px;padding:4px 0;text-decoration:none;cursor:pointer}
+nav a svg{width:24px;height:24px;display:block;margin:0 auto 2px}
+nav a.on{color:var(--acc)}
+.page{display:none}.page.on{display:block}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translateX(-50%) translateY(20px);background:#222c3a;color:var(--text);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#results div{padding:10px 4px;border-top:1px solid var(--line);cursor:pointer}
+#results div small{color:var(--dim)}
+.note{color:var(--dim);font-size:13px;margin-top:8px}
+#gate{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;z-index:10;text-align:center}
+#gate input{max-width:220px;text-align:center;font-size:24px;letter-spacing:6px;margin:16px 0}
+.val{color:var(--acc);font-weight:600;min-width:44px;text-align:right}
+pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overflow:auto;background:#0a0e14;padding:10px;border-radius:10px}
+</style>
+</head>
+<body>
+<div id="gate"><h1>Flight Frame</h1><div class="note">Enter the frame's PIN</div><input id="pinIn" type="password" inputmode="numeric" autocomplete="off"><button class="btn acc" id="pinGo">Unlock</button></div>
+
+<h1 id="title">Flight Frame</h1>
+<div class="sub"><span class="dot" id="conn"></span><span id="connTxt">Connecting…</span></div>
+
+<!-- HOME -->
+<section class="page on" id="p-home">
+  <div class="big">
+    <button class="btn" id="bScreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0"/></svg><span>Screen</span></button>
+    <button class="btn" id="bReload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span>Reload</span></button>
+  </div>
+  <div class="card"><h2>Brightness</h2>
+    <div class="row"><div class="l">Automatic</div><label class="sw"><input type="checkbox" id="brAuto"><span></span></label></div>
+    <div class="row"><input type="range" id="br" min="1" max="100"><span class="val" id="brV"></span></div>
+  </div>
+  <div class="card"><h2>Live view <span style="float:right;text-transform:none;letter-spacing:0;color:var(--faint)" id="shotAge"></span></h2><img id="shot" alt=""></div>
+  <div class="card list"><h2>Overhead now</h2><div id="flights"><div class="note">Waiting for the display…</div></div></div>
+</section>
+
+<!-- DISPLAY -->
+<section class="page" id="p-display">
+  <div class="card"><h2>Theme</h2><div class="themes" id="themes"></div>
+    <div class="row" style="margin-top:8px;display:block"><div class="l" style="margin-bottom:10px">Accent colour</div><div class="chips" id="accents"></div></div>
+  </div>
+  <div class="card"><h2>Units & clock</h2>
+    <div class="row"><div class="l">Units</div><select data-k="units"><option value="metric">Metric (m, km/h, km)</option><option value="imperial">Imperial (ft, mph, mi)</option><option value="aviation">Aviation (ft, kt, nm)</option></select></div>
+    <div class="row"><div class="l">24-hour clock</div><label class="sw"><input type="checkbox" data-k="clock24"><span></span></label></div>
+  </div>
+  <div class="card"><h2>Layout</h2>
+    <div class="row"><div class="l">Orientation<small>Auto follows the frame's tilt sensor</small></div><select data-k="rotation"><option value="auto">Auto</option><option value="P">Portrait</option><option value="L">Landscape</option><option value="P2">Portrait (flipped)</option><option value="L2">Landscape (flipped)</option></select></div>
+    <div class="row"><div class="l">Plane drawing</div><label class="sw"><input type="checkbox" data-k="showPlane"><span></span></label></div>
+    <div class="row"><div class="l">Radar</div><label class="sw"><input type="checkbox" data-k="showRadar"><span></span></label></div>
+    <div class="row"><div class="l">Map under the radar</div><label class="sw"><input type="checkbox" data-k="showMap"><span></span></label></div>
+    <div class="row"><div class="l">Map credit</div><label class="sw"><input type="checkbox" data-k="mapCredit"><span></span></label></div>
+    <div class="row"><div class="l">"Also nearby" list</div><label class="sw"><input type="checkbox" data-k="showList"><span></span></label></div>
+    <div class="row"><div class="l">Flights in the list</div><input type="number" min="0" max="8" data-k="listCount" data-num></div>
+  </div>
+  <div class="card"><h2>Which plane is featured</h2>
+    <div class="row"><div class="l">Featured plane</div><select data-k="featured"><option value="nearest">Nearest</option><option value="lowest">Lowest</option><option value="cycle">Take turns</option></select></div>
+    <div class="row"><div class="l">Seconds per plane<small>When taking turns</small></div><input type="number" min="5" max="300" data-k="cycleSec" data-num></div>
+  </div>
+  <div class="card"><h2>Range & filters</h2>
+    <div class="row"><div class="l">Search radius<small>Kilometres around you</small></div><input type="number" min="2" max="250" data-k="radiusKm" data-num></div>
+    <div class="row"><div class="l">Radar outer ring<small>In your chosen units</small></div><input type="number" min="2" max="200" data-k="radarRange" data-num></div>
+    <div class="row"><div class="l">Lowest altitude (ft)</div><input type="number" min="0" max="60000" step="500" data-k="minAltFt" data-num></div>
+    <div class="row"><div class="l">Highest altitude (ft)</div><input type="number" min="0" max="60000" step="500" data-k="maxAltFt" data-num></div>
+    <div class="row"><div class="l">Hide planes without a callsign</div><label class="sw"><input type="checkbox" data-k="hideNoCallsign"><span></span></label></div>
+    <div class="row"><div class="l">Update every (seconds)</div><input type="number" min="4" max="120" data-k="pollSec" data-num></div>
+  </div>
+  <div class="card"><h2>Empty-sky screen</h2>
+    <div class="row"><div class="l">Weather</div><label class="sw"><input type="checkbox" data-k="showWeather"><span></span></label></div>
+    <div class="row"><div class="l">Rain chart</div><label class="sw"><input type="checkbox" data-k="showRain"><span></span></label></div>
+    <div class="row"><div class="l">Space station passes</div><label class="sw"><input type="checkbox" data-k="showISS"><span></span></label></div>
+  </div>
+</section>
+
+<!-- SCHEDULE -->
+<section class="page" id="p-schedule">
+  <div class="card"><h2>Screen on/off schedule</h2>
+    <div class="row"><div class="l">Use schedule</div><label class="sw"><input type="checkbox" data-k="schedule.enabled"><span></span></label></div>
+    <div class="row"><div class="l">Screen on at</div><input type="time" data-k="schedule.on"></div>
+    <div class="row"><div class="l">Screen off at</div><input type="time" data-k="schedule.off"></div>
+    <div class="row" style="display:block"><div class="l" style="margin-bottom:8px">Days</div><div class="days" id="days"></div></div>
+    <div class="row"><div class="l">How to turn off<small>Auto picks the best method this frame supports</small></div><select data-k="screenOffMode"><option value="auto">Auto</option><option value="lock">Sleep the panel</option><option value="dim">Black screen</option></select></div>
+  </div>
+  <div class="card"><h2>Night dimming</h2>
+    <div class="row"><div class="l">Dim at night</div><label class="sw"><input type="checkbox" data-k="nightDim"><span></span></label></div>
+    <div class="row"><div class="l">From</div><input type="time" data-k="nightFrom"></div>
+    <div class="row"><div class="l">Until</div><input type="time" data-k="nightTo"></div>
+    <div class="row"><input type="range" min="10" max="90" data-k="nightLevel" data-num id="nl"><span class="val" id="nlV"></span></div>
+  </div>
+</section>
+
+<!-- LOCATION -->
+<section class="page" id="p-place">
+  <div class="card"><h2>Find a place</h2>
+    <div class="row"><input type="text" id="q" placeholder="Town or city" style="max-width:none"><button class="btn" id="qGo">Search</button></div>
+    <div id="results"></div>
+    <div class="row"><button class="btn" id="here" style="width:100%">Use my phone's location</button></div>
+  </div>
+  <div class="card"><h2>Location</h2>
+    <div class="row"><div class="l">Name on screen</div><input type="text" data-k="name"></div>
+    <div class="row"><div class="l">Latitude</div><input type="number" step="0.0001" data-k="lat" data-num></div>
+    <div class="row"><div class="l">Longitude</div><input type="number" step="0.0001" data-k="lon" data-num></div>
+    <div class="row"><div class="l">Time zone<small>Empty = the frame's own</small></div><input type="text" data-k="tz" placeholder="Europe/Amsterdam"></div>
+    <div class="note" id="mapNote"></div>
+  </div>
+  <div class="card"><h2>Radar map</h2>
+    <div class="note">Make a map for your location on the Flight Frame website, then upload both files here.</div>
+    <div class="row"><input type="file" id="mapFiles" multiple accept=".jpg,.js"><button class="btn" id="mapUp">Upload</button></div>
+  </div>
+</section>
+
+<!-- FRAME -->
+<section class="page" id="p-frame">
+  <div class="card"><h2>Status</h2><div class="kv" id="kv"></div></div>
+  <div class="card"><h2>Flight data</h2>
+    <div class="row"><div class="l">Schiphol app ID<small>Optional: official routes for Schiphol flights</small></div><input type="text" data-k="schiphol.id" autocomplete="off"></div>
+    <div class="row"><div class="l">Schiphol secret</div><input type="password" data-k="schiphol.secret" autocomplete="off"></div>
+  </div>
+  <div class="card"><h2>Frame</h2>
+    <div class="row"><div class="l">Frame name</div><input type="text" data-k="frameName"></div>
+    <div class="row"><div class="l">PIN for this app<small>Empty = no PIN</small></div><input type="password" inputmode="numeric" id="pinSet" placeholder="none"></div>
+    <div class="btns" style="margin-top:10px">
+      <button class="btn" data-act="identify">Show address</button>
+      <button class="btn" data-act="clear_cache">Clear cache</button>
+      <button class="btn" data-act="update">Update display</button>
+      <button class="btn" data-act="restart">Restart app</button>
+      <a class="btn" id="backup" href="api/backup" style="text-align:center;text-decoration:none">Back up settings</a>
+      <label class="btn" style="text-align:center">Restore<input type="file" id="restore" accept=".json" hidden></label>
+      <button class="btn" data-act="reboot">Reboot frame</button>
+      <button class="btn red" data-act="reset">Reset all</button>
+    </div>
+  </div>
+  <div class="card"><h2>Log</h2><button class="btn" id="logBtn">Show log</button><pre id="log" hidden></pre></div>
+</section>
+
+<nav>
+  <a data-p="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v10H3z"/></svg>Home</a>
+  <a data-p="display"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Display</a>
+  <a data-p="schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Schedule</a>
+  <a data-p="place"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>Location</a>
+  <a data-p="frame"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Frame</a>
+</nav>
+<div id="toast"></div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+let S={}, ST={}, pin=localStorage.getItem('ff_pin')||'', page='home', shotTimer=null, stateTimer=null, dirty={}, saveT=null;
+
+const THEMES={midnight:['Midnight','#07090d','#ffb238'],departures:['Departures','#000','#ffd23f'],daylight:['Daylight','#eef1f5','#d9480f'],
+  ocean:['Ocean','#04121f','#4fd1ff'],amber:['Amber','#0b0700','#ffcf70'],radar:['Radar','#020a04','#5be38a']};
+const ACCENTS=['','#ffb238','#4fd1ff','#5be38a','#ff6b6b','#c084fc','#ffd23f','#ffffff'];
+
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove('on'),2200) }
+async function api(path,opt={}){
+  opt.headers=Object.assign({'X-PIN':pin},opt.headers||{});
+  const r=await fetch('api/'+path,opt);
+  if(r.status===401){ showGate(); throw new Error('pin') }
+  if(!r.ok) throw new Error(await r.text());
+  const ct=r.headers.get('content-type')||''; return ct.includes('json')?r.json():r.text();
+}
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+function showGate(){ $('#gate').style.display='flex'; $('#pinIn').focus() }
+$('#pinGo').onclick=()=>{ pin=$('#pinIn').value; localStorage.setItem('ff_pin',pin); $('#gate').style.display='none'; load() };
+
+function get(o,k){ return k.split('.').reduce((a,b)=>a==null?a:a[b],o) }
+function setPatch(k,v){ const p=k.split('.'); if(p.length===1) dirty[k]=v; else { dirty[p[0]]=Object.assign({},S[p[0]]||{},dirty[p[0]]||{},{[p[1]]:v}) } ;
+  let o=S; for(let i=0;i<p.length-1;i++){ o[p[i]]=o[p[i]]||{}; o=o[p[i]] } o[p[p.length-1]]=v;
+  clearTimeout(saveT); saveT=setTimeout(save,500) }
+async function save(){ const d=dirty; dirty={}; if(!Object.keys(d).length) return;
+  try{ const r=await post('settings',d); toast(r.reloaded?'Saved · display updating':'Saved') }catch(e){ if(e.message!=='pin') toast('Could not save') } }
+
+function fill(){
+  $('#title').textContent=S.frameName||'Flight Frame';
+  $$('[data-k]').forEach(el=>{ const v=get(S,el.dataset.k); if(el.type==='checkbox') el.checked=!!v; else if(document.activeElement!==el) el.value=v==null?'':v });
+  $('#themes').innerHTML=Object.entries(THEMES).map(([k,t])=>`<div class="th${S.theme===k?' on':''}" data-t="${k}" style="background:${t[1]};color:${k==='daylight'?'#141a22':'#eef2f7'}"><i style="background:linear-gradient(135deg,${t[1]},${k==='daylight'?'#d5dbe3':'#1d2430'})"><b style="background:${t[2]}"></b></i>${t[0]}</div>`).join('');
+  $('#accents').innerHTML=ACCENTS.map(c=>`<span class="chip${(S.accent||'')===c?' on':''}" data-c="${c}" style="${c?`background:${c};width:30px;height:30px;padding:0;border-radius:50%`:''}">${c?'':'Theme'}</span>`).join('');
+  const d=(S.schedule&&S.schedule.days)||[1,1,1,1,1,1,1];
+  $('#days').innerHTML=['M','T','W','T','F','S','S'].map((x,i)=>`<span class="${d[i]?'on':''}" data-d="${i}">${x}</span>`).join('');
+  const b=S.brightness; $('#brAuto').checked=b<0; $('#br').disabled=b<0; $('#br').value=b<0?60:b; $('#brV').textContent=b<0?'Auto':b+'%';
+  $('#nlV').textContent=(S.nightLevel||0)+'%';
+  $('#pinSet').placeholder=S.pin==='set'?'••••  (set)':'none';
+  let m=null; try{ m=JSON.parse(ST.mapFile||'null') }catch(e){}
+  $('#mapNote').textContent = m ? (dist(m.lat,m.lon,S.lat,S.lon)>1 ? 'The radar map is for a different place, so it is hidden. Upload a new map below.' : 'The radar map matches this location.') : 'No radar map yet.';
+}
+function dist(a,b,c,d){ const R=6371,r=x=>x*Math.PI/180, x=r(c-a), y=r(d-b), h=Math.sin(x/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(y/2)**2; return 2*R*Math.asin(Math.sqrt(h)) }
+
+function status(){
+  const s=ST.status||{}, dsp=ST.display||{};
+  const on=s.screenOn; $('#bScreen').classList.toggle('on',!!on); $('#bScreen span').textContent=on?'Screen on':'Screen off';
+  $('#conn').className='dot ok'; $('#connTxt').textContent=(s.ssid?s.ssid+' · ':'')+(dsp.count!=null?dsp.count+' aircraft nearby':'connected');
+  const up=t=>t>86400?Math.floor(t/86400)+'d '+Math.floor(t%86400/3600)+'h':t>3600?Math.floor(t/3600)+'h '+Math.floor(t%3600/60)+'m':Math.floor(t/60)+'m';
+  const kv=[['Screen',on?'On':'Off'+(s.screenMethod?' ('+s.screenMethod+')':'')],['Schedule says',s.scheduledOn==null?'No schedule':(s.scheduledOn?'On':'Off')],
+    ['Wifi',(s.ssid||'?')+(s.rssi?' · '+s.rssi+' dBm':'')+(s.freqMHz?' · '+(s.freqMHz>4000?'5':'2.4')+' GHz':'')],['Address',s.ip+':8080'],
+    ['Display updated',ST.displayAgo<0?'not yet':ST.displayAgo+' s ago'],['App running',up(s.uptimeApp||0)],['Frame running',up(s.uptimeDevice||0)],
+    ['Display reloads',s.reloads],['Storage free',(s.freeMB||0)+' MB'],['Memory free',(s.memFreeMB||0)+' / '+(s.memTotalMB||0)+' MB'],
+    ['Temperature',s.tempC?Math.round(s.tempC)+' °C':'–'],['Frame',s.model],['Android',s.android+(s.webview?' · WebView '+s.webview.split('.')[0]:'')],
+    ['Screen control',(s.root?'root':s.admin?'device admin':'black screen only')],['App version',s.version],['Time zone',s.timezone]];
+  $('#kv').innerHTML=kv.map(([k,v])=>`<div>${k}</div><div>${v==null?'–':v}</div>`).join('');
+  const fl=dsp.flights||[], U=S.units==='metric';
+  $('#flights').innerHTML=fl.length?fl.map(f=>`<div class="f"><div class="cs">${f.cs||f.reg||'—'}</div><div class="rt">${f.from&&f.to?f.from+' → '+f.to:(f.type||'')}</div><div class="al">${U?Math.round(f.alt*0.3048).toLocaleString()+' m':Math.round(f.alt).toLocaleString()+' ft'}</div></div>`).join(''):'<div class="note">No aircraft nearby right now.</div>';
+}
+
+async function load(){
+  try{ ST=await api('state'); S=ST.settings; fill(); status() }
+  catch(e){ if(e.message!=='pin'){ $('#conn').className='dot bad'; $('#connTxt').textContent='Can\'t reach the frame — same wifi?' } }
+}
+async function refresh(){ try{ ST=await api('state'); if(!Object.keys(dirty).length){ S=ST.settings } status(); if(page!=='home') {} }catch(e){ $('#conn').className='dot bad'; $('#connTxt').textContent='Can\'t reach the frame' } }
+function shot(){ if(page!=='home'||document.hidden) return; const im=new Image(); const t=Date.now();
+  im.onload=()=>{ $('#shot').src=im.src; $('#shotAge').textContent='live' }; im.src='api/screenshot.jpg?w=720&pin='+encodeURIComponent(pin)+'&t='+t }
+
+// events
+document.addEventListener('change',e=>{ const el=e.target; if(!el.dataset.k) return;
+  let v=el.type==='checkbox'?el.checked:el.value; if(el.dataset.num!==undefined) v=parseFloat(v);
+  setPatch(el.dataset.k,v); if(el.dataset.k==='nightLevel') $('#nlV').textContent=v+'%' });
+$('#nl').oninput=e=>$('#nlV').textContent=e.target.value+'%';
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-t]'); if(t){ setPatch('theme',t.dataset.t); fill() }
+  const c=e.target.closest('[data-c]'); if(c){ setPatch('accent',c.dataset.c); fill() }
+  const d=e.target.closest('[data-d]'); if(d){ const days=((S.schedule&&S.schedule.days)||[1,1,1,1,1,1,1]).slice(); days[+d.dataset.d]=days[+d.dataset.d]?0:1; setPatch('schedule.days',days); fill() }
+  const n=e.target.closest('nav a'); if(n){ page=n.dataset.p; $$('nav a').forEach(x=>x.classList.toggle('on',x===n)); $$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+page)); window.scrollTo(0,0); if(page==='home') shot() }
+  const a=e.target.closest('[data-act]'); if(a){ const act=a.dataset.act;
+    if((act==='reset'||act==='reboot')&&!confirm(act==='reset'?'Reset every setting to the defaults?':'Reboot the frame?')) return;
+    try{ const r=await post('action',{action:act}); toast(r.ok?({identify:'Address shown on the frame',update:'Display updated',restart:'Restarting…',reboot:'Rebooting…',reset:'Settings reset',clear_cache:'Cache cleared'}[act]||'Done'):(r.error||'Failed')); if(act==='reset') load() }catch(err){ toast('Failed: '+err.message.slice(0,60)) } }
+});
+$('#bScreen').onclick=async()=>{ const on=!(ST.status&&ST.status.screenOn); await post('action',{action:on?'screen_on':'screen_off'}); toast(on?'Screen on':'Screen off'); setTimeout(refresh,1500) };
+$('#bReload').onclick=async()=>{ await post('action',{action:'reload'}); toast('Display reloading'); setTimeout(shot,4000) };
+$('#brAuto').onchange=e=>{ setPatch('brightness',e.target.checked?-1:+$('#br').value); fill() };
+$('#br').oninput=e=>{ $('#brV').textContent=e.target.value+'%' };
+$('#br').onchange=e=>{ setPatch('brightness',+e.target.value) };
+$('#pinSet').onchange=e=>{ const v=e.target.value.trim(); setPatch('pin',v); pin=v; localStorage.setItem('ff_pin',v); e.target.value=''; toast(v?'PIN set':'PIN removed') };
+$('#logBtn').onclick=async()=>{ const l=$('#log'); l.hidden=!l.hidden; if(!l.hidden) l.textContent=await api('log') };
+$('#backup').onclick=e=>{ e.preventDefault(); location.href='api/backup?pin='+encodeURIComponent(pin) };
+$('#restore').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ await api('restore',{method:'POST',body:await f.text()}); toast('Settings restored'); load() }catch(err){ toast('Restore failed') } };
+// location search (Open-Meteo geocoding, free)
+async function search(){ const q=$('#q').value.trim(); if(!q) return;
+  const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&name='+encodeURIComponent(q)).then(r=>r.json()).catch(()=>({}));
+  $('#results').innerHTML=(r.results||[]).map((p,i)=>`<div data-i="${i}">${p.name}<br><small>${[p.admin1,p.country].filter(Boolean).join(', ')} · ${p.latitude.toFixed(3)}, ${p.longitude.toFixed(3)}</small></div>`).join('')||'<div class="note">No places found</div>';
+  $$('#results [data-i]').forEach(el=>el.onclick=()=>{ const p=r.results[+el.dataset.i]; setPatch('name',p.name); setPatch('lat',+p.latitude.toFixed(4)); setPatch('lon',+p.longitude.toFixed(4)); if(p.timezone) setPatch('tz',p.timezone); $('#results').innerHTML=''; fill() }) }
+$('#qGo').onclick=search; $('#q').onkeydown=e=>{ if(e.key==='Enter') search() };
+$('#here').onclick=()=>{ if(!navigator.geolocation) return toast('Location not available');
+  navigator.geolocation.getCurrentPosition(p=>{ setPatch('lat',+p.coords.latitude.toFixed(4)); setPatch('lon',+p.coords.longitude.toFixed(4)); fill(); toast('Location set') },()=>toast('Location needs https — search instead')) };
+$('#mapUp').onclick=async()=>{ const fs=Array.from($('#mapFiles').files); if(!fs.length) return toast('Choose radarmap.jpg and radarmap.js');
+  for(const f of fs){ const name=/\.js$/i.test(f.name)?'radarmap.js':'radarmap.jpg'; await api('file?name='+name,{method:'POST',body:await f.arrayBuffer()}) } toast('Map uploaded'); load() };
+
+load(); setInterval(refresh,5000); setInterval(shot,6000); setTimeout(shot,800);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ refresh(); shot() } });
+})();
+</script>
+</body>
+</html>
