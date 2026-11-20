@@ -76,3 +76,12 @@ Routes from free databases are occasionally out of date. Please use the data for
 
 ## Credits
 Plane drawings, map styling, the app and the phone app are original work released under the MIT License. Flight Frame is an independent hobby project and isn't affiliated with any airline, airport, frame maker, or with other flight-display products.
+
+### Optional: Flight Frame startup animation
+Replace the frame maker's boot animation with a Flight Frame one (radar, a plane flying in, the name around the ring). Needs a frame with root access:
+```bash
+python3 tools/bootanim/make_bootanim.py --w 1080 --h 1920 --out bootanimation.zip   # use your screen's size
+adb root && adb remount
+adb shell cp /system/media/bootanimation.zip /data/local/tmp/bootanimation_original.zip   # backup
+adb push bootanimation.zip /system/media/bootanimation.zip
+```
