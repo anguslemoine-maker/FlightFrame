@@ -42,6 +42,7 @@ public final class Settings {
             d.put("showWeather", true);
             d.put("showRain", true);
             d.put("showISS", true);
+            d.put("showChart", true);
             d.put("featured", "nearest");
             d.put("cycleSec", 20);
             d.put("minAltFt", 0);

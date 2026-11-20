@@ -76,7 +76,7 @@
   .quiet{margin-bottom:18px;font-size:24px;letter-spacing:3px;color:var(--dim);text-transform:uppercase}
 
   /* radar */
-  #radarWrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px 0;min-height:0}
+  #radarWrap{position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:18px 0;min-height:0}
   #radar{height:100%;max-height:460px;width:auto}
 
   /* list */
@@ -191,6 +191,9 @@
   .schline .schtag{font-size:12px;letter-spacing:2px;color:#0b0f15;background:#7d8898;border-radius:4px;padding:2px 6px;margin-right:10px;vertical-align:2px;font-weight:700}
   .schline.late b{color:var(--amber)}
   .L .schline{font-size:16px}
+
+  #chart{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  #radar{position:relative;z-index:1}
 </style>
 </head>
 <body>
@@ -234,7 +237,7 @@
   </div>
 
   <div id="side">
-    <div id="radarWrap"><svg id="radar" viewBox="-110 -110 220 220"></svg></div>
+    <div id="radarWrap"><svg id="chart"></svg><svg id="radar" viewBox="-110 -110 220 220"></svg></div>
     <div id="list"><div class="lhead">Also nearby</div><div id="rows"></div></div>
   </div>
   </div>
@@ -253,7 +256,7 @@
   // Gravity in device axes: +y = landscape (sensor upright), -y = landscape flipped, +x = portrait, -x = portrait flipped.
   var MODES={P:'', P2:'R3', L:'L R', L2:'L R2'};
   var mode=null, cand=null, candSince=0;
-  function applyMode(m){
+  function applyMode(m){ setTimeout(function(){ if(window.__rc) window.__rc() },200);
     if(m===mode) return; mode=m;
     var real=window.innerWidth>window.innerHeight;
     document.documentElement.className = real ? 'L' : MODES[m];
@@ -274,7 +277,7 @@
   // ---- settings ----
   // ---- settings: from the Flight Frame app (FFApp bridge), else settings.js, else defaults ----
   var DEF={name:'Leiderdorp',lat:52.1583,lon:4.5333,tz:'',radiusKm:18,radarRange:20,units:'metric',theme:'midnight',accent:'',
-    rotation:'auto',showMap:true,showRadar:true,showList:true,listCount:4,showPlane:true,showWeather:true,showRain:true,showISS:true,mapCredit:true,
+    rotation:'auto',showMap:true,showRadar:true,showList:true,listCount:4,showPlane:true,showWeather:true,showRain:true,showISS:true,mapCredit:true,showChart:true,
     clock24:true,nightDim:true,nightFrom:'23:00',nightTo:'07:00',nightLevel:65,minAltFt:0,maxAltFt:60000,featured:'nearest',cycleSec:20,
     pollSec:8,hideNoCallsign:false,schiphol:{id:'',secret:''}};
   var CFG={}; (function(){
@@ -991,6 +994,54 @@
   })();
   setInterval(function(){ if(window.FFApp&&FFApp.heartbeat) FFApp.heartbeat() },20000);
 
+  // ---- aeronautical-chart backdrop behind the radar (compass rose, lat/lon grid, airways) ----
+  function renderChart(){
+    if(CFG.showChart===false) return;
+    var wrap=$('radarWrap'), rad=$('radar'), ch=$('chart');
+    var wr=wrap.getBoundingClientRect(), rr=rad.getBoundingClientRect();
+    if(!rr.width) return;
+    // radar SVG: 220 units across its box; use the same units for the backdrop, centred on the radar
+    var mode=document.documentElement.className, rot=/\bR\b|R2/.test(mode);
+    var W=rot?wr.height:wr.width, H=rot?wr.width:wr.height, S=rot?rr.height:rr.width;
+    var k=220/S, cx=((rot?(rr.top-wr.top):(rr.left-wr.left))+S/2)*k, cy=((rot?(wr.right-rr.right):(rr.top-wr.top))+S/2)*k;
+    if(/R2/.test(mode)) cy=((rr.left-wr.left)+S/2)*k;
+    var vx=-cx, vy=-cy, vw=W*k, vh=H*k;
+    ch.setAttribute('viewBox',vx+' '+vy+' '+vw+' '+vh);
+    var col=TH[4], h='', kmU=100/RADAR_KM;
+    // lat/lon grid every 0.1 deg (6'), labelled at the edges
+    var dLat=0.1, dLon=0.1, latKm=111.32, lonKm=111.32*Math.cos(HOME.lat*Math.PI/180);
+    function fmt(v,ns){ var a=Math.abs(v), d=Math.floor(a), m=Math.round((a-d)*60); if(m===60){d++;m=0} return d+'\u00b0'+(m<10?'0':'')+m+'\u2032'+(ns?(v>=0?'N':'S'):(v>=0?'E':'W')) }
+    for(var la=Math.floor((HOME.lat-1)/dLat)*dLat; la<HOME.lat+1; la+=dLat){
+      var y=-(la-HOME.lat)*latKm*kmU; if(y<vy||y>vy+vh) continue;
+      h+='<line x1="'+vx+'" y1="'+y.toFixed(1)+'" x2="'+(vx+vw)+'" y2="'+y.toFixed(1)+'" stroke="'+col+'" stroke-width=".35" stroke-dasharray="1 3" opacity=".5"/>';
+      h+='<text x="'+(vx+3)+'" y="'+(y-1.5).toFixed(1)+'" fill="'+col+'" font-size="4" opacity=".8">'+fmt(la,1)+'</text>';
+    }
+    for(var lo=Math.floor((HOME.lon-2)/dLon)*dLon; lo<HOME.lon+2; lo+=dLon){
+      var x=(lo-HOME.lon)*lonKm*kmU; if(x<vx||x>vx+vw) continue;
+      h+='<line x1="'+x.toFixed(1)+'" y1="'+vy+'" x2="'+x.toFixed(1)+'" y2="'+(vy+vh)+'" stroke="'+col+'" stroke-width=".35" stroke-dasharray="1 3" opacity=".5"/>';
+      h+='<text x="'+(x+1.5).toFixed(1)+'" y="'+(vy+vh-3)+'" fill="'+col+'" font-size="4" opacity=".8">'+fmt(lo,0)+'</text>';
+    }
+    // airways: straight routes passing near, with waypoint triangles
+    var AW=[[-25,-1.2],[62,0.55],[118,-0.35],[160,0.9],[32,-1.45]];   // [bearing deg, offset in radar radii]
+    AW.forEach(function(a,i){
+      var b=a[0]*Math.PI/180, dx=Math.sin(b), dy=-Math.cos(b), ox=-dy*a[1]*100, oy=dx*a[1]*100, L=900;
+      h+='<line x1="'+(ox-dx*L).toFixed(1)+'" y1="'+(oy-dy*L).toFixed(1)+'" x2="'+(ox+dx*L).toFixed(1)+'" y2="'+(oy+dy*L).toFixed(1)+'" stroke="'+col+'" stroke-width=".5" opacity=".55"/>';
+      for(var t=-3;t<=3;t++){ var px=ox+dx*(t*70+i*13), py=oy+dy*(t*70+i*13);
+        h+='<path d="M'+px.toFixed(1)+' '+(py-2.6).toFixed(1)+' l2.3 4 h-4.6z" fill="none" stroke="'+col+'" stroke-width=".5" opacity=".75"/>'; }
+    });
+    // radio beacon (VOR) symbol at Schiphol, with its own small compass rose
+    var sx=(4.7639-HOME.lon)*lonKm*kmU, sy=-(52.3086-HOME.lat)*latKm*kmU, hx='';
+    for(var j=0;j<6;j++){ var an=j*Math.PI/3; hx+=(j?' L':'M')+(sx+4*Math.cos(an)).toFixed(1)+' '+(sy+4*Math.sin(an)).toFixed(1) }
+    h+='<path d="'+hx+'Z" fill="none" stroke="'+col+'" stroke-width=".6" opacity=".8"/><circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="22" fill="none" stroke="'+col+'" stroke-width=".4" opacity=".45"/>';
+    for(var d=0;d<360;d+=10){ var ra=d*Math.PI/180, r1=d%30?20:18; h+='<line x1="'+(sx+r1*Math.sin(ra)).toFixed(1)+'" y1="'+(sy-r1*Math.cos(ra)).toFixed(1)+'" x2="'+(sx+22*Math.sin(ra)).toFixed(1)+'" y2="'+(sy-22*Math.cos(ra)).toFixed(1)+'" stroke="'+col+'" stroke-width=".4" opacity=".55"/>' }
+    // compass rose around the radar
+    h+='<circle r="111" fill="none" stroke="'+col+'" stroke-width=".4" opacity=".6"/>';
+    for(var g=0;g<360;g+=5){ var rg=g*Math.PI/180, r0=g%30===0?104.5:(g%10===0?107:108.5);
+      h+='<line x1="'+(r0*Math.sin(rg)).toFixed(2)+'" y1="'+(-r0*Math.cos(rg)).toFixed(2)+'" x2="'+(111*Math.sin(rg)).toFixed(2)+'" y2="'+(-111*Math.cos(rg)).toFixed(2)+'" stroke="'+col+'" stroke-width="'+(g%30===0?.7:.4)+'" opacity=".75"/>';
+      if(g%30===0&&g){ var lab={90:'E',180:'S',270:'W'}[g]||String(g/10); h+='<text x="'+(118*Math.sin(rg)).toFixed(1)+'" y="'+(-118*Math.cos(rg)+1.6).toFixed(1)+'" fill="'+col+'" font-size="4.6" text-anchor="middle" opacity=".9">'+lab+'</text>' } }
+    ch.innerHTML='<g opacity=".55">'+h+'</g>';
+  }
+  window.__rc=renderChart; if(CFG.showChart!==false) setTimeout(renderChart,300); window.addEventListener('resize',function(){ setTimeout(renderChart,100) });
   poll(); setInterval(poll,1000);
   // reload the page every 6 hours to keep things fresh
   setTimeout(function(){location.reload()},6*3600e3);
