@@ -65,7 +65,7 @@ The frame app listens on port 8080 (your home network only). `GET /api/state`, `
 
 ## Where the data comes from
 All free, no keys needed (except the optional Schiphol one):
-- **Aircraft positions:** [adsb.lol](https://adsb.lol) — community ADS-B network (ODbL)
+- **Aircraft positions:** [adsb.lol](https://adsb.lol) (ODbL), with [adsb.fi](https://adsb.fi) as automatic backup when one is busy — community ADS-B networks
 - **Routes & aircraft details:** [adsbdb.com](https://www.adsbdb.com) and [hexdb.io](https://hexdb.io), cross-checked against the plane's live position and heading
 - **Official Schiphol schedule:** [Schiphol Flight API](https://developer.schiphol.nl) (optional)
 - **Weather:** [Open-Meteo](https://open-meteo.com) (CC BY 4.0) · **Space station:** [CelesTrak](https://celestrak.org) + satellite.js

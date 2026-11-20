@@ -396,30 +396,58 @@
   var busy=false, lastOk=Date.now();
   function getJSON(url,ms){
     var ctl=window.AbortController?new AbortController():null, t=setTimeout(function(){ if(ctl) ctl.abort() }, ms||7000);
-    return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(x){clearTimeout(t); if(!x.ok) throw new Error(x.status); return x.json()},function(e){clearTimeout(t); throw e});
+    return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(x){clearTimeout(t); if(!x.ok){ var e=new Error(x.status); e.http=x.status; e.retry=parseInt(x.headers.get('retry-after')||'0',10); throw e } return x.json()},function(e){clearTimeout(t); throw e});
+  }
+  // Live positions: two free community networks with the same data format. If one refuses (busy / rate limit),
+  // rest it for a while and use the other. Never retry faster than the normal interval.
+  var SRC=[
+    {name:'adsb.lol', url:function(){ return 'https://api.adsb.lol/v2/point/'+HOME.lat+'/'+HOME.lon+'/'+Math.ceil(RADIUS_NM) }, until:0, pen:0},
+    {name:'adsb.fi',  url:function(){ return 'https://opendata.adsb.fi/api/v2/lat/'+HOME.lat+'/lon/'+HOME.lon+'/dist/'+Math.ceil(RADIUS_NM) }, until:0, pen:0}];
+  var srcIdx=0, nextPoll=0, netFails=0, lastErr='';
+  function pickSrc(){
+    var now=Date.now();
+    for(var k=0;k<SRC.length;k++){ var s=SRC[(srcIdx+k)%SRC.length]; if(s.until<=now){ srcIdx=(srcIdx+k)%SRC.length; return s } }
+    return null;   // all resting
   }
   function poll(){
-    if(busy) return; busy=true;
-    getJSON('https://api.adsb.lol/v2/point/'+HOME.lat+'/'+HOME.lon+'/'+RADIUS_NM).then(function(j){
-      busy=false; lastOk=Date.now();
-      lastData=(j.ac||[]).filter(function(a){return a.lat!=null && a.alt_baro!=='ground' && a.alt_baro!=null && a.alt_baro>=CFG.minAltFt && a.alt_baro<=CFG.maxAltFt && (!CFG.hideNoCallsign||cs(a))}).map(function(a){
+    var now=Date.now();
+    if(busy||now<nextPoll) return;
+    var s=pickSrc();
+    if(!s){ nextPoll=Math.min(SRC[0].until,SRC[1].until); showStale('busy'); return }
+    busy=true; nextPoll=now+POLL_MS;
+    getJSON(s.url()).then(function(j){
+      busy=false; lastOk=Date.now(); netFails=0; s.pen=0; lastErr='';
+      lastData=(j.ac||j.aircraft||[]).filter(function(a){return a.lat!=null && a.alt_baro!=='ground' && a.alt_baro!=null && a.alt_baro>=CFG.minAltFt && a.alt_baro<=CFG.maxAltFt && (!CFG.hideNoCallsign||cs(a))}).map(function(a){
         a.km=hav(HOME.lat,HOME.lon,a.lat,a.lon); return a;
-      }).sort(function(a,b){return a.km-b.km});
+      }).filter(function(a){ return a.km<=CFG.radiusKm+0.5 }).sort(function(a,b){return a.km-b.km});
       $('status').textContent=lastData.length+' aircraft within '+dist(CFG.radiusKm,0);
       report();
       $('status').style.color='';
       render();
-    }).catch(function(){
+    }).catch(function(e){
       busy=false;
-      // keep showing the last picture; only flag it if we've been without data for a while
-      var gone=(Date.now()-lastOk)/1000;
-      if(gone>45){ $('status').textContent='Wifi reconnecting · last update '+Math.round(gone/60*10)/10+' min ago'; $('status').style.color='var(--amber)'; }
-      if(gone>600){ lastData=[]; render(); }   // after 10 min, drop stale planes
+      if(e&&e.http){
+        // the service answered but refused: rest this source (respect Retry-After, else 1, 2, 4 … 15 min) and switch
+        s.pen=Math.min((s.pen||0)+1,5);
+        var rest=Math.max((e.retry||0)*1000, Math.min(15,Math.pow(2,s.pen-1))*60000);
+        s.until=Date.now()+rest; srcIdx=(srcIdx+1)%SRC.length; nextPoll=Date.now()+2000;
+        lastErr='busy';
+        if(window.FFApp&&FFApp.log) FFApp.log(s.name+' refused ('+e.http+'), resting '+Math.round(rest/1000)+' s');
+      } else {
+        // no answer at all: network problem. Back off 10, 20, 40, 60 s.
+        netFails++; nextPoll=Date.now()+Math.min(60000,10000*Math.pow(2,Math.min(netFails-1,3)));
+        lastErr='net';
+      }
+      showStale(lastErr);
     });
   }
-  // retry quickly when the connection comes back
-  window.addEventListener('online',function(){ setTimeout(poll,1500) });
-  setInterval(function(){ if(Date.now()-lastOk>POLL_MS*1.5) poll() },3000);
+  function showStale(why){
+    var gone=(Date.now()-lastOk)/1000;
+    if(gone>45){ $('status').textContent=(why==='busy'?'Flight data busy, retrying':'Wifi reconnecting')+' · last update '+Math.round(gone/60*10)/10+' min ago'; $('status').style.color='var(--amber)'; }
+    if(gone>600){ lastData=[]; render(); }   // after 10 min, drop stale planes
+  }
+  // retry soon when the connection comes back
+  window.addEventListener('online',function(){ netFails=0; nextPoll=0; setTimeout(poll,1500) });
 
   // ---- render ----
   var cycAt=0;
@@ -963,7 +991,7 @@
   })();
   setInterval(function(){ if(window.FFApp&&FFApp.heartbeat) FFApp.heartbeat() },20000);
 
-  poll(); setInterval(poll,POLL_MS);
+  poll(); setInterval(poll,1000);
   // reload the page every 6 hours to keep things fresh
   setTimeout(function(){location.reload()},6*3600e3);
 })();
