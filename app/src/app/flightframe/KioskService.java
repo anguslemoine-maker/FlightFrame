@@ -20,7 +20,7 @@ import java.util.Calendar;
 /** Background service: runs the phone-control server and the screen schedule, and keeps the display in front. */
 public class KioskService extends Service {
     static volatile KioskService instance;
-    static final long started = System.currentTimeMillis();
+    static final long started = android.os.SystemClock.elapsedRealtime();
     private ControlServer server;
     private PowerManager.WakeLock cpu;
     private final Handler h = new Handler(Looper.getMainLooper());
@@ -43,6 +43,14 @@ public class KioskService extends Service {
         server = new ControlServer(this, 8080);
         server.start();
         h.postDelayed(tick, 5000);
+        Thread wg = new Thread(new Runnable() { public void run() {
+            try { Thread.sleep(15000); } catch (InterruptedException e) { return; }
+            while (instance != null) {
+                try { WifiGuard.check(KioskService.this); } catch (Throwable t) { MainActivity.log("wifi check: " + t); }
+                try { Thread.sleep(20000); } catch (InterruptedException e) { return; }
+            }
+        }}, "ff-wifi");
+        wg.setDaemon(true); wg.start();
     }
 
     @Override public int onStartCommand(Intent i, int f, int id) { return START_STICKY; }

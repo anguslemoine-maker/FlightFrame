@@ -175,6 +175,7 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overfl
 <!-- FRAME -->
 <section class="page" id="p-frame">
   <div class="card"><h2>Status</h2><div class="kv" id="kv"></div></div>
+  <div class="card"><h2>Wifi health</h2><div class="kv" id="wkv"></div><div id="wev" class="list" style="margin-top:10px"></div></div>
   <div class="card"><h2>Flight data</h2>
     <div class="row"><div class="l">Schiphol app ID<small>Optional: official routes for Schiphol flights</small></div><input type="text" data-k="schiphol.id" autocomplete="off"></div>
     <div class="row"><div class="l">Schiphol secret</div><input type="password" data-k="schiphol.secret" autocomplete="off"></div>
@@ -260,6 +261,8 @@ function status(){
     ['Temperature',s.tempC?Math.round(s.tempC)+' °C':'–'],['Frame',s.model],['Android',s.android+(s.webview?' · WebView '+s.webview.split('.')[0]:'')],
     ['Screen control',(s.root?'root':s.admin?'device admin':'black screen only')],['App version',s.version],['Time zone',s.timezone]];
   $('#kv').innerHTML=kv.map(([k,v])=>`<div>${k}</div><div>${v==null?'–':v}</div>`).join('');
+  const w=ST.wifi||{}; $('#wkv').innerHTML=[['Drop-outs (24 h)',w.drops24h],['Drop-outs (7 days)',w.drops7d],['Automatic wifi resets (7 days)',w.resets7d],['Last check',w.last||'–']].map(([k,v])=>`<div>${k}</div><div>${v==null?'–':v}</div>`).join('');
+  const ev=(w.recent||[]).slice().reverse(); $('#wev').innerHTML=ev.length?ev.map(e=>`<div class="f" style="grid-template-columns:96px 1fr auto"><div class="rt">${new Date(e.t).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div>${e.detail}</div><div class="al">${e.secs?e.secs+' s':''}</div></div>`).join(''):'<div class="note">No drop-outs recorded.</div>';
   const fl=dsp.flights||[], U=S.units==='metric';
   $('#flights').innerHTML=fl.length?fl.map(f=>`<div class="f"><div class="cs">${f.cs||f.reg||'—'}</div><div class="rt">${f.from&&f.to?f.from+' → '+f.to:(f.type||'')}</div><div class="al">${U?Math.round(f.alt*0.3048).toLocaleString()+' m':Math.round(f.alt).toLocaleString()+' ft'}</div></div>`).join(''):'<div class="note">No aircraft nearby right now.</div>';
 }

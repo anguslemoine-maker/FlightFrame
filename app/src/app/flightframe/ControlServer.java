@@ -227,7 +227,7 @@ final class ControlServer extends Thread {
         try { if (Build.VERSION.SDK_INT >= 26) { android.content.pm.PackageInfo wv = WebView.getCurrentWebViewPackage(); if (wv != null) x.put("webview", wv.versionName); } } catch (Exception ignored) {}
         x.put("ip", ip());
         x.put("uptimeDevice", SystemClock.elapsedRealtime() / 1000);
-        x.put("uptimeApp", (System.currentTimeMillis() - KioskService.started) / 1000);
+        x.put("uptimeApp", (SystemClock.elapsedRealtime() - KioskService.started) / 1000);
         x.put("screenOn", !Screen.isOff && Screen.panelOn(ctx));
         x.put("screenMethod", Screen.method);
         x.put("root", Screen.hasRoot());
@@ -259,6 +259,7 @@ final class ControlServer extends Thread {
         } catch (Exception ignored) {}
         try { String t = Web.read(new File("/sys/class/thermal/thermal_zone0/temp")).trim(); if (t.length() > 0) { double v = Double.parseDouble(t); x.put("tempC", v > 1000 ? v / 1000 : v); } } catch (Exception ignored) {}
         st.put("status", x);
+        try { st.put("wifi", WifiGuard.summary(ctx)); } catch (Exception ignored) {}
         try { st.put("display", new JSONObject(MainActivity.lastReport)); } catch (Exception e) { st.put("display", new JSONObject()); }
         st.put("displayAgo", MainActivity.lastReportAt == 0 ? -1 : (System.currentTimeMillis() - MainActivity.lastReportAt) / 1000);
         File map = new File(Web.dir(ctx), "radarmap.js");
