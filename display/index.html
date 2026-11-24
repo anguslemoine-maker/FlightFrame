@@ -46,6 +46,11 @@
   .prog{height:6px;background:var(--line);border-radius:3px;margin-top:22px;position:relative}
   .prog i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);border-radius:3px}
   .noroute{font-size:30px;color:var(--faint);margin-top:34px}
+  .activity{margin-top:30px}
+  .activity .act{font-size:44px;font-weight:600;line-height:1.15;color:var(--ink)}
+  .activity .why{font-size:28px;color:var(--faint);margin-top:8px}
+  #plane .photo{height:100%;display:flex;justify-content:center;align-items:center;padding:6px 20px}
+  #plane .photo img{max-height:100%;max-width:100%;border-radius:14px;object-fit:cover;box-shadow:0 6px 24px rgba(0,0,0,.45)}
   .rnote2{font-size:16px;color:var(--faint);margin-top:8px;letter-spacing:1px}
 
   .stats{display:grid;grid-template-columns:1fr 1fr;grid-gap:16px;margin-top:24px}
@@ -122,6 +127,7 @@
   .L .arrow svg{width:48px;height:48px}
   .L .prog{margin-top:14px}
   .L .noroute{margin-top:20px}
+  .L .activity{margin-top:18px}
   .L .stats{grid-template-columns:1fr 1fr 1fr 1fr;grid-gap:12px;margin-top:18px}
   .L .stat{padding:12px 16px;border-radius:12px}
   .L .stat .k{font-size:13px;letter-spacing:2px}
@@ -462,6 +468,7 @@
         a.km=hav(HOME.lat,HOME.lon,a.lat,a.lon); return a;
       }).filter(function(a){ return a.km<=CFG.radiusKm+0.5 }).sort(function(a,b){return a.km-b.km});
       $('status').textContent=lastData.length+' aircraft within '+dist(CFG.radiusKm,0);
+      trackHist(lastData);
       report();
       $('status').style.color='';
       render();
@@ -689,14 +696,16 @@
     var al=r&&r.airline;
     // airline + logo
     var ac=aircraft(a.hex);
-    $('aname').textContent = al ? al.name : (ac && ac.registered_owner ? ac.registered_owner : (/^[A-Z]{3}\d/.test(c) ? '' : 'Unscheduled flight'));
+    var own=ac&&ac.registered_owner&&ownerOK(ac.registered_owner)?ac.registered_owner:'';
+    $('aname').textContent = al ? al.name : (own || (/^[A-Z]{3}\d/.test(c) ? '' : 'Unscheduled flight'));
     var hdrIata=(al&&al.iata)||(window.FFPlanes&&/^[A-Z]{3}\d/.test(c)?FFPlanes.iata(c.slice(0,3)):'');
     var hdrIcao=(al&&al.icao)||(/^[A-Z]{3}\d/.test(c)?c.slice(0,3):'');
     var hcat=category(a,r,ac);
     var src = (hcat && hcat!=='private') || (hcat==='private' && !(hdrIcao&&auto[hdrIcao]&&auto[hdrIcao].logo) && !hdrIata)
       ? 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(FFPlanes.badgeSVG(hcat))
       : hdrIata ? 'https://pics.avs.io/240/80/'+hdrIata+'.png' : (hdrIcao&&auto[hdrIcao]&&auto[hdrIcao].logo ? ICAO_LOGO+hdrIcao+'.png' : '');
-    if(hcat && !al && !(ac&&ac.registered_owner)) $('aname').textContent = FFPlanes.catLabel(hcat)+(hcat==='private'?' flight':'');
+    if(hcat==='private' && !al) $('aname').textContent = (own?own+' · ':'')+kindOf(a,ac);
+    else if(hcat && !al && !own) $('aname').textContent = FFPlanes.catLabel(hcat);
     if(src){
       if($('logoImg').getAttribute('src')!==src){ $('logo').style.display='none'; $('logoImg').onload=function(){$('logo').style.display='block'}; $('logoImg').onerror=function(){$('logo').style.display='none'}; $('logoImg').src=src; }
     } else { $('logo').style.display='none'; $('logoImg').removeAttribute('src') }
@@ -710,10 +719,12 @@
       else if(ai) num=ai+' '+(c.length>3?c.slice(3):ci);
       else if(/^[A-Z]{3}\d/.test(c)) num=c.slice(0,3)+' '+c.slice(3);
       else num=ci.replace(/^([A-Z0-9]{2})/,'$1 ');
-    } else num=c||a.r||a.hex.toUpperCase();
+    } else num=(a.r&&(!c||c.replace(/-/g,'')===a.r.replace(/-/g,'')))?a.r:(c||a.r||a.hex.toUpperCase());
     $('fno').innerHTML = esc(num) + ((r && (r.callsign_iata||r._sch) && c && num.replace(' ','')!==c) ? '<small>'+esc(c)+'</small>' : '');
+    var loop = r && r.origin && r.destination && r.origin.icao_code===r.destination.icao_code;
+    var showAct = loop || (hcat && !(r && (r.origin||r.destination)));
     // route
-    if(r && (r.origin || r.destination)){
+    if(!loop && r && (r.origin || r.destination)){
       var o=r.origin, d=r.destination, prog='';
       if(o && d){ var d1=hav(o.latitude,o.longitude,a.lat,a.lon), d2=hav(a.lat,a.lon,d.latitude,d.longitude);
         var t=Math.max(0.03,Math.min(0.97,d1/(d1+d2))), P0=[8,56],P1=[364,-36],P2=[720,56];
@@ -732,6 +743,10 @@
       $('routeBox').innerHTML='<div class="route">'+side(o,'','Origin unknown')+
         '<div class="arrow"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" transform="rotate(90 12 12)"/></svg></div>'+
         side(d,' to','Destination unknown')+'</div>'+prog;
+    } else if(showAct){
+      var ay=activity(a);
+      if(loop){ var circ=/^circling/.test(ay.short); ay={act:circ?ay.act:'Local flight from '+aptCity(r.origin), why:circ?'Local flight from '+aptCity(r.origin):'Will return to '+aptCity(r.origin)} }
+      $('routeBox').innerHTML='<div class="activity"><div class="act">'+esc(ay.act)+'</div><div class="why">'+esc(ay.why)+'</div></div>';
     } else {
       $('routeBox').innerHTML='<div class="noroute">'+(r&&r._note?esc(r._note):(routes[c]&&routes[c].st==='p'?'Looking up route…':'Route not available'))+'</div>';
     }
@@ -746,13 +761,13 @@
     var p=xy(a.lat,a.lon), brg=(Math.atan2(p.x,p.y)*180/Math.PI+360)%360;
     $('dst').textContent=dist(a.km);
     $('dst2').textContent='to the '+compass(brg);
-    $('typ').textContent=TYPES[a.t]||(ac&&ac.type?((ac.manufacturer&&ac.type.toUpperCase().indexOf(ac.manufacturer.split(' ')[0].toUpperCase())<0?ac.manufacturer.split(' ')[0]+' ':'')+ac.type):(a.t||'Unknown'));
+    $('typ').textContent=typeName(a,ac)||'Unknown';
     $('reg').textContent=[a.r,a.t].filter(Boolean).join(' · ');
   }
 
   function planePath(){ return 'M0,-7 L1.2,-2 L7,1.5 L7,3 L1.2,1.5 L0.9,5 L2.6,6.4 L2.6,7.4 L0,6.7 L-2.6,7.4 L-2.6,6.4 L-0.9,5 L-1.2,1.5 L-7,3 L-7,1.5 L-1.2,-2 Z' }
 
-  var logoOK={}, planeKey='';
+  var logoOK={}, photoOK={}, planeKey='';
   function logoReady(iata){
     if(!iata) return false;
     if(logoOK[iata]===undefined){ logoOK[iata]=null; var im=new Image();
@@ -955,13 +970,92 @@
     return '';
   }
 
+  // ---- private / non-airline flights: proper type names, what kind of flight, and what it is doing ----
+  function typeName(a,ac){
+    if(TYPES[a.t]) return TYPES[a.t];
+    var d=a.desc||'';
+    if(d){
+      d=d.replace(/(-\d+)?(\/[\w-]+)+$/,'').replace(/\b([A-Z]{4,})\b/g,function(w){ return w[0]+w.slice(1).toLowerCase() });
+      return d.replace(/\bTl Ultralight\b/,'TL-Ultralight');
+    }
+    if(ac&&ac.type) return ((ac.manufacturer&&ac.type.toUpperCase().indexOf(ac.manufacturer.split(' ')[0].toUpperCase())<0?ac.manufacturer.split(' ')[0]+' ':'')+ac.type);
+    return a.t||'';
+  }
+  var HELI=/^(R22|R44|R66|EC2|EC3|EC4|EC5|EC6|H1|H2|H6|AS3|AS5|AS6|A109|A119|A139|A169|AW|B06|B407|B412|B429|BK17|S76|S92|MD5|MD6|NH90|LYNX|CH47|UH|AH64|G2CA|CABR)/;
+  function kindOf(a,ac){
+    var d=(a.desc||'')+' '+((ac&&ac.type)||''), t=a.t||'', cat=a.category||'';
+    if(cat==='A7'||HELI.test(t)||/helicopter|copter|robinson|eurocopter/i.test(d)) return 'Helicopter';
+    if(cat==='B2'||/balloon/i.test(d)) return 'Balloon';
+    if(cat==='B1'||/glider|segelflug|\bASK|DG-|LS[0-9]|discus|duo|ventus|arcus/i.test(d)) return 'Glider';
+    if(cat==='B4'||/ultralight|ultra-light|microlight/i.test(d)||/^PH-[0-9]/.test(a.r||'')) return 'Microlight';
+    if(/citation|phenom|falcon|gulfstream|learjet|challenger|global|hawker|legacy|praetor|hondajet|premier|eclipse|vision jet|pilatus pc-24/i.test(d)) return 'Business jet';
+    if(cat==='A2') return 'Business aircraft';
+    return 'Light aircraft';
+  }
+  function ownerOK(o){ return !!o && /\b(b\.?v\.?|n\.?v\.?|club|vliegclub|aero|air|aviation|avia|flight|flying|school|academy|stichting|ltd|llc|limited|gmbh|inc|corp|s\.?a\.?|charter|jet|heli|police|politie|defen|ministry|ministerie|kustwacht|anwb|lifeliner|lease|leasing|bank|trust)\b/i.test(o) }
+
+  // light-aircraft airfields used to explain where a flight comes from or is going
+  var AIRFIELDS=[['Schiphol',52.3086,4.7639],['Rotterdam',51.9569,4.4372],['Lelystad',52.4603,5.5272],['Hilversum',52.1919,5.1469],['Midden-Zeeland',51.5122,3.7311],
+    ['Seppe',51.5547,4.5525],['Teuge',52.2447,6.0464],['Texel',53.1153,4.8336],['De Kooy',52.9234,4.7806],['Middenmeer',52.8146,5.0794],['Eindhoven',51.4501,5.3745],
+    ['Gilze-Rijen',51.5674,4.9318],['Woensdrecht',51.4491,4.342],['Drachten',53.1192,6.1297],['Hoogeveen',52.7308,6.5161],['Groningen',53.1197,6.5794],['Ameland',53.4517,5.6772],
+    ['Antwerp',51.1894,4.4603],['Volkel',51.6564,5.7077]];
+  var hist={};
+  function trackHist(list){
+    var now=Date.now(), seen={};
+    list.forEach(function(a){ var h=hist[a.hex]||(hist[a.hex]={first:{t:now,lat:a.lat,lon:a.lon,alt:a.alt_baro},p:[]});
+      var last=h.p[h.p.length-1]; if(!last||now-last.t>4000) h.p.push({t:now,lat:a.lat,lon:a.lon,alt:a.alt_baro,trk:a.track});
+      while(h.p.length&&now-h.p[0].t>10*60e3) h.p.shift(); seen[a.hex]=1 });
+    for(var k in hist) if(!seen[k] && now-(hist[k].p.length?hist[k].p[hist[k].p.length-1].t:0)>5*60e3) delete hist[k];
+  }
+  function nearestTown(lat,lon){
+    var p=xy(lat,lon), best=null, bd=1e9, M=window.FF_MAP;
+    if(Math.sqrt(p.x*p.x+p.y*p.y)<2.5) return CFG.name;
+    ((M&&M.labels)||[]).forEach(function(t){ if(t[3]===2) return; var d=Math.hypot(t[1]-p.x,t[2]-p.y); if(d<bd){bd=d;best=t[0]} });
+    return bd<8?best:'';
+  }
+  function nearestField(lat,lon){ var b=null,bd=1e9; AIRFIELDS.forEach(function(f){ var d=hav(lat,lon,f[1],f[2]); if(d<bd){bd=d;b=f} }); return b?{n:b[0],d:bd,lat:b[1],lon:b[2]}:null }
+  function activity(a){
+    var h=hist[a.hex], alt=typeof a.alt_baro==='number'?a.alt_baro:3000, vr=a.baro_rate||a.geom_rate||0, town=nearestTown(a.lat,a.lon);
+    var pts=h?h.p:[], turn=0, span=pts.length?Date.now()-pts[0].t:0;
+    for(var i=1;i<pts.length;i++) if(pts[i].trk!=null&&pts[i-1].trk!=null){ var d=pts[i].trk-pts[i-1].trk; if(d>180)d-=360; if(d<-180)d+=360; turn+=d }
+    var net=pts.length>1?hav(pts[0].lat,pts[0].lon,a.lat,a.lon):99, path=0;
+    for(var j=1;j<pts.length;j++) path+=hav(pts[j-1].lat,pts[j-1].lon,pts[j].lat,pts[j].lon);
+    // 1. circling or flying back and forth over one area
+    if(span>150e3 && (Math.abs(turn)>300 || (net<3 && path>5))){
+      var slow=alt<1500 && nearestField(a.lat,a.lon).d<4;
+      return {short:'circling', act:slow?'Flying circuits at '+nearestField(a.lat,a.lon).n:'Circling'+(town?(town===CFG.name?' over ':' near ')+town:''),
+        why:slow?'Practising take-offs and landings':(a.category==='A7'||kindOf(a)==='Helicopter'?'Helicopter on a local mission':'Likely a training or sightseeing flight')};
+    }
+    // 2. just took off: first seen low and climbing close to an airfield
+    if(h && h.first){ var ff=nearestField(h.first.lat,h.first.lon);
+      if(ff && ff.d<6 && typeof h.first.alt==='number' && h.first.alt<1800 && vr>150) return {short:'from '+ff.n, act:'Departed from '+ff.n, why:'Climbing out'} }
+    var nf=nearestField(a.lat,a.lon);
+    if(nf && nf.d<8 && alt<1800 && vr>200) return {short:'from '+nf.n, act:'Departed from '+nf.n, why:'Climbing out'};
+    // 3. heading for an airfield (descending, or the track points straight at one)
+    if(a.track!=null){
+      var tgt=null, td=1e9;
+      AIRFIELDS.forEach(function(f){ var d=hav(a.lat,a.lon,f[1],f[2]); if(d<3||d>(vr<-200?60:120)) return;
+        if(angDiff(a.track,bearingTo(a.lat,a.lon,f[1],f[2]))<(d<25?20:10) && d<td){ td=d; tgt=f } });
+      if(tgt) return {short:'to '+tgt[0], act:(vr<-200&&td<30?'Landing at ':'Heading for ')+tgt[0], why:Math.round(td)+' km away'+(td<40&&a.gs?' · about '+Math.max(1,Math.round(td/(a.gs*1.852)*60))+' min':'')};
+    }
+    // 4. otherwise: where it is and which way it is going
+    return {short:a.track!=null?'heading '+compass(a.track):'', act:(town?'Passing '+(town===CFG.name?'over ':'near ')+town:'Passing by'), why:a.track!=null?'Heading '+({N:'north',NE:'north-east',E:'east',SE:'south-east',S:'south',SW:'south-west',W:'west',NW:'north-west'})[compass(a.track)]:''};
+  }
+  function photoUrl(ac){ return ac&&(ac.url_photo||ac.url_photo_thumbnail)||'' }
+
   function renderPlane(a,r){
     if(!window.FFPlanes) return;
     var c=cs(a), al=r&&r.airline;
     var icao=al&&al.icao ? al.icao : (/^[A-Z]{3}\d/.test(c)?c.slice(0,3):'');
     var iataCode=(al&&al.iata)||FFPlanes.iata(icao);
     var iata=iataCode&&logoReady(iataCode) ? iataCode : '';
-    var opts={}, ai=null, cat=category(a,r,craft[a.hex]&&craft[a.hex].st==='ok'?craft[a.hex].d:null);
+    var acd=craft[a.hex]&&craft[a.hex].st==='ok'?craft[a.hex].d:null;
+    var opts={}, ai=null, cat=category(a,r,acd);
+    if(cat && !(r&&r.airline) && photoUrl(acd) && photoOK[photoUrl(acd)]!==false){
+      var u=photoUrl(acd), pk='photo|'+u; if(pk===planeKey) return;
+      if(photoOK[u]===true){ planeKey=pk; $('plane').innerHTML='<div class="photo"><img src="'+esc(u)+'"></div>'; return }
+      if(photoOK[u]===undefined){ photoOK[u]=null; var im=new Image(); im.onload=function(){ photoOK[u]=im.naturalWidth>40; planeKey=''; render() }; im.onerror=function(){ photoOK[u]=false; planeKey=''; render() }; im.src=u }
+    }
     if(cat && cat!=='private'){ opts.cat=cat; iata=''; }
     else if(cat==='private' && !FFPlanes.known(icao)){ opts.cat=cat; }
     if(!opts.cat && icao && (!FFPlanes.known(icao) || !iataCode)){ ai=autoInfo(icao) }
@@ -1007,8 +1101,9 @@
     var others=lastData.filter(function(a){return !sel||a.hex!==sel.hex}).slice(0,CFG.showList?Math.max(0,CFG.listCount):0), h='';
     others.forEach(function(a){
       var c=cs(a), r=schRoute(a,checkRoute(route(c),a));
-      var rt = r&&r.origin&&r.destination ? (r.origin.iata_code+' '+aptCity(r.origin)+' → '+r.destination.iata_code+' '+aptCity(r.destination)) : (r&&r.destination ? '→ '+r.destination.iata_code+' '+aptCity(r.destination) : (r&&r.origin ? r.origin.iata_code+' '+aptCity(r.origin)+' →' : (TYPES[a.t]||a.t||'')));
-      h+='<div class="row"><div class="cs mono">'+esc(c||a.r||'—')+'</div><div class="rt">'+esc(rt)+'</div><div class="al">'+(U.a==='m'?fmt(a.alt_baro*0.3048)+' m':fmt(a.alt_baro)+' ft')+'</div><div class="ds">'+dist(a.km)+'</div></div>';
+      var rt = r&&r.origin&&r.destination&&r.origin.icao_code===r.destination.icao_code ? r.origin.iata_code+' '+aptCity(r.origin)+' · local flight' : r&&r.origin&&r.destination ? (r.origin.iata_code+' '+aptCity(r.origin)+' → '+r.destination.iata_code+' '+aptCity(r.destination)) : (r&&r.destination ? '→ '+r.destination.iata_code+' '+aptCity(r.destination) : (r&&r.origin ? r.origin.iata_code+' '+aptCity(r.origin)+' →' : (function(){ var n=typeName(a,craft[a.hex]&&craft[a.hex].st==='ok'?craft[a.hex].d:null), y=category(a,r,null)?activity(a).short:''; return n+(y?' · '+y:'') })()));
+      var lbl=(a.r&&(!c||c.replace(/-/g,'')===a.r.replace(/-/g,'')))?a.r:(c||a.r||'—');
+      h+='<div class="row"><div class="cs mono">'+esc(lbl)+'</div><div class="rt">'+esc(rt)+'</div><div class="al">'+(U.a==='m'?fmt(a.alt_baro*0.3048)+' m':fmt(a.alt_baro)+' ft')+'</div><div class="ds">'+dist(a.km)+'</div></div>';
     });
     $('list').style.visibility=others.length?'visible':'hidden';
     $('rows').innerHTML=h;
