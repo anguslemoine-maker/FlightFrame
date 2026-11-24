@@ -359,13 +359,39 @@
       apts[icao]=p; try{ localStorage.setItem('ff_apts',JSON.stringify(apts)) }catch(e){} return p;
     });
   }
+  // VRS standing data (Virtual Radar Server's community route database, on GitHub): one file per airline, cached 3 days
+  var vrs={};
+  function vrsTable(al){
+    var e=vrs[al]; if(e) return e.p;
+    var key='ff_vrs_'+al, c=null; try{ c=JSON.parse(localStorage.getItem(key)||'null') }catch(x){}
+    if(c && Date.now()-c.t<3*86400e3){ vrs[al]={p:Promise.resolve(c.m)}; return vrs[al].p }
+    var p=fetch('https://raw.githubusercontent.com/vradarserver/standing-data/main/routes/schema-01/'+al[0]+'/'+al+'-all.csv').then(function(x){ if(!x.ok) throw 0; return x.text() }).then(function(t){
+      var m={}; t.split(/\r?\n/).forEach(function(l){ var f=l.split(','); if(f.length>=5&&f[0]!=='Callsign') m[f[0].replace(/^\uFEFF/,'')]=f[4] });
+      try{ localStorage.setItem(key,JSON.stringify({t:Date.now(),m:m})) }catch(x){ try{ Object.keys(localStorage).forEach(function(k){ if(k.indexOf('ff_vrs_')===0) localStorage.removeItem(k) }) }catch(y){} }
+      return m;
+    }).catch(function(){ return c?c.m:{} });
+    vrs[al]={p:p}; return p;
+  }
+  function vrsRoute(c){
+    var m=/^([A-Z]{3})(\w+)$/.exec(c); if(!m) return Promise.resolve(null);
+    return vrsTable(m[1]).then(function(t){
+      var codes=t[c]||t[m[1]+m[2].replace(/^0+/,'')]; if(!codes) return null;
+      var legs=codes.split('-').filter(function(x){ return /^[A-Z0-9]{4}$/.test(x) }); if(legs.length<2) return null;
+      return Promise.all(legs.map(function(x){ return hexAirport(x).catch(function(){ return null }) })).then(function(ap){
+        var out=[]; for(var i=0;i<ap.length-1;i++) if(ap[i]&&ap[i+1]) out.push({o:ap[i],d:ap[i+1]});
+        return out.length?out:null;
+      });
+    }).catch(function(){ return null });
+  }
   function route(c){
     if(!c) return null;
     var r=routes[c], now=Date.now();
     if(r && (r.st==='p' || now-r.t < 6*3600e3)){
-      if(r.st!=='ok' && !r.h) return null;
+      if(r.st!=='ok' && !r.h && !r.v) return null;
       var out={}; if(r.d) for(var k in r.d) out[k]=r.d[k]; else out.callsign=c;
-      out._alt=r.h||null; return out;
+      out._alt=r.h||null; out._vrs=r.v||null;
+      if(!out.origin){ var f=r.h||(r.v&&r.v[0]&&{origin:r.v[0].o,destination:r.v[r.v.length-1].d}); if(f){ out.origin=f.origin; out.destination=f.destination } }
+      return out;
     }
     routes[c]={st:'p',t:now};
     var A=getJSON('https://api.adsbdb.com/v0/callsign/'+encodeURIComponent(c)).then(function(j){ return (j&&j.response&&j.response.flightroute)||null },function(){ return null });
@@ -373,11 +399,12 @@
       var legs=(j&&j.route||'').split('-'); if(legs.length<2) return null;
       return Promise.all([hexAirport(legs[0]),hexAirport(legs[legs.length-1])]).then(function(x){ return {origin:x[0],destination:x[1]} });
     }).catch(function(){ return null });
-    Promise.all([A,B]).then(function(res){
-      var fr=res[0], hx=res[1];
+    var V=vrsRoute(c);
+    Promise.all([A,B,V]).then(function(res){
+      var fr=res[0], hx=res[1], vr=res[2];
       // reuse adsbdb's nicer city names when both name the same airport
       if(fr && hx){ [['origin'],['destination']].forEach(function(k){ [fr.origin,fr.destination].forEach(function(ap){ if(ap && hx[k] && ap.icao_code===hx[k].icao_code) hx[k]=ap }) }) }
-      routes[c]=(fr||hx)?{st:fr?'ok':'h',d:fr,h:hx,t:Date.now()}:{st:'no',t:Date.now()};
+      routes[c]=(fr||hx||vr)?{st:fr?'ok':'h',d:fr,h:hx,v:vr,t:Date.now()}:{st:'no',t:Date.now()};
       saveRoutes(); checked={}; render();
     });
     return null;
@@ -405,7 +432,17 @@
   // rest it for a while and use the other. Never retry faster than the normal interval.
   var SRC=[
     {name:'adsb.lol', url:function(){ return 'https://api.adsb.lol/v2/point/'+HOME.lat+'/'+HOME.lon+'/'+Math.ceil(RADIUS_NM) }, until:0, pen:0},
-    {name:'adsb.fi',  url:function(){ return 'https://opendata.adsb.fi/api/v2/lat/'+HOME.lat+'/lon/'+HOME.lon+'/dist/'+Math.ceil(RADIUS_NM) }, until:0, pen:0}];
+    {name:'adsb.fi',  url:function(){ return 'https://opendata.adsb.fi/api/v2/lat/'+HOME.lat+'/lon/'+HOME.lon+'/dist/'+Math.ceil(RADIUS_NM) }, until:0, pen:0},
+    // OpenSky: no account needed but only ~400 requests a day, so only when both others are resting, at most once a minute
+    {name:'opensky', gap:60000, url:function(){ var dl=CFG.radiusKm/111, dn=CFG.radiusKm/(111*Math.cos(HOME.lat*Math.PI/180));
+      return 'https://opensky-network.org/api/states/all?lamin='+(HOME.lat-dl).toFixed(3)+'&lomin='+(HOME.lon-dn).toFixed(3)+'&lamax='+(HOME.lat+dl).toFixed(3)+'&lomax='+(HOME.lon+dn).toFixed(3) }, until:0, pen:0}];
+  function fromOpenSky(j){   // convert OpenSky state vectors to the readsb format the display uses
+    return {ac:(j.states||[]).filter(function(v){ return v[6]!=null&&!v[8] }).map(function(v){
+      var hex=v[0], c=craft[hex]&&craft[hex].st==='ok'?craft[hex].d:null; if(!c) aircraft(hex);
+      return {hex:hex,flight:v[1]||'',lat:v[6],lon:v[5],alt_baro:v[7]!=null?Math.round(v[7]/0.3048):(v[13]!=null?Math.round(v[13]/0.3048):null),
+        gs:v[9]!=null?v[9]*1.943844:null,track:v[10],baro_rate:v[11]!=null?Math.round(v[11]*196.85):0,squawk:v[14]||'',
+        t:c?c.icao_type:'',r:c?c.registration:''} })};
+  }
   var srcIdx=0, nextPoll=0, netFails=0, lastErr='';
   function pickSrc(){
     var now=Date.now();
@@ -416,9 +453,10 @@
     var now=Date.now();
     if(busy||now<nextPoll) return;
     var s=pickSrc();
-    if(!s){ nextPoll=Math.min(SRC[0].until,SRC[1].until); showStale('busy'); return }
+    if(!s){ nextPoll=Math.min.apply(null,SRC.map(function(x){return x.until})); showStale('busy'); return }
     busy=true; nextPoll=now+POLL_MS;
     getJSON(s.url()).then(function(j){
+      if(s.name==='opensky'){ j=fromOpenSky(j); s.until=Date.now()+s.gap; srcIdx=0 }
       busy=false; lastOk=Date.now(); netFails=0; s.pen=0; lastErr='';
       lastData=(j.ac||j.aircraft||[]).filter(function(a){return a.lat!=null && a.alt_baro!=='ground' && a.alt_baro!=null && a.alt_baro>=CFG.minAltFt && a.alt_baro<=CFG.maxAltFt && (!CFG.hideNoCallsign||cs(a))}).map(function(a){
         a.km=hav(HOME.lat,HOME.lon,a.lat,a.lon); return a;
@@ -505,6 +543,7 @@
     var cands=[];
     if(r.origin&&r.destination) cands.push({o:r.origin,d:r.destination,src:'a'});
     if(r._alt&&r._alt.origin&&r._alt.destination) cands.push({o:r._alt.origin,d:r._alt.destination,src:'h'});
+    (r._vrs||[]).forEach(function(l){ cands.push({o:l.o,d:l.d,src:'v'}) });
     var best=null, bs=1e9;
     cands.forEach(function(c){ var sc=legScore(c.o,c.d,a); if(sc!==null && sc<bs){ bs=sc; best=c } });
     var out={}; for(var k in r) out[k]=r[k];
