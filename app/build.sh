@@ -8,7 +8,7 @@ BT=$SDK/build-tools/34.0.0
 JAR=$SDK/platforms/android-29/android.jar
 OUT=build; rm -rf $OUT; mkdir -p $OUT/gen $OUT/classes $OUT/assets/www $OUT/assets/companion
 # assets: the display and the phone app
-cp ../display/index.html ../display/planes.js ../display/satellite.min.js ../display/settings.js ../display/schiphol.js $OUT/assets/www/
+cp ../display/index.html ../display/planes.js ../display/satellite.min.js ../display/settings.js ../display/schiphol.js ../display/d3-array.min.js ../display/d3-geo.min.js ../display/world.js $OUT/assets/www/
 [ -f ../display/radarmap.js ] && cp ../display/radarmap.js ../display/radarmap.jpg $OUT/assets/www/ || true
 cp -R ../companion/. $OUT/assets/companion/
 $BT/aapt2 compile --dir res -o $OUT/res.zip

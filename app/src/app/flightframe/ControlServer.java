@@ -174,6 +174,22 @@ final class ControlServer extends Thread {
             if (img == null) return res(503, "text/plain", "display not running".getBytes());
             return res(200, "image/jpeg", img);
         }
+        if (p.equals("/api/lookup")) {   // live position of a callsign anywhere in the world (the phone can't ask these services itself)
+            String cs = param(q, "cs"); if (cs == null) cs = ""; cs = cs.toUpperCase().replaceAll("[^A-Z0-9]", "");
+            if (cs.length() < 3 || cs.length() > 8) return js(400, "{\"error\":\"bad callsign\"}");
+            String[] urls = {"https://opendata.adsb.fi/api/v2/callsign/" + cs, "https://api.adsb.lol/v2/callsign/" + cs};
+            for (String u : urls) {
+                try {
+                    java.net.HttpURLConnection h = (java.net.HttpURLConnection) new java.net.URL(u).openConnection();
+                    h.setConnectTimeout(8000); h.setReadTimeout(10000); h.setRequestProperty("User-Agent", "FlightFrame/" + BuildInfo.VERSION);
+                    if (h.getResponseCode() != 200) { h.disconnect(); continue; }
+                    java.io.InputStream in = h.getInputStream(); ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] buf = new byte[8192]; int n;
+                    while ((n = in.read(buf)) > 0) bo.write(buf, 0, n); in.close(); h.disconnect();
+                    return res(200, "application/json; charset=utf-8", bo.toByteArray());
+                } catch (Exception e) { }
+            }
+            return js(502, "{\"error\":\"lookup failed\"}");
+        }
         if (p.equals("/api/log")) { synchronized (MainActivity.log) { return res(200, "text/plain; charset=utf-8", MainActivity.log.toString().getBytes("UTF-8")); } }
         return null;
     }

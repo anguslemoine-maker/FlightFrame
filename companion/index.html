@@ -76,6 +76,22 @@ nav a.on{color:var(--acc)}
 #gate{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;z-index:10;text-align:center}
 #gate input{max-width:220px;text-align:center;font-size:24px;letter-spacing:6px;margin:16px 0}
 .val{color:var(--acc);font-weight:600;min-width:44px;text-align:right}
+.tsearch{display:flex;gap:8px}
+.tsearch input{flex:1;max-width:none!important;font-size:20px!important;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-color:var(--acc)!important;padding:12px!important}
+.tres{background:var(--card2);border-radius:14px;padding:14px;margin-top:12px;border:1px solid var(--line)}
+.tres .a{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tres .fn{font-size:22px;font-weight:800} .tres .al{color:var(--dim);font-size:14px}
+.ttag{font-size:12px;font-weight:700;padding:4px 9px;border-radius:20px;background:rgba(91,227,138,.15);color:var(--green);white-space:nowrap}
+.ttag.w{background:rgba(255,178,56,.15);color:var(--acc)} .ttag.g{background:rgba(139,150,166,.15);color:var(--dim)}
+.trt{display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px}
+.trt b{font-size:26px} .trt small{display:block;color:var(--dim);font-size:12px;font-weight:400}
+.trt .ln{flex:1;margin:0 10px;border-top:2px dashed var(--faint);position:relative;top:-8px}
+.tmeta{color:var(--dim);font-size:13px}
+.tbar{height:8px;background:#232d3b;border-radius:4px;margin:12px 0 6px;position:relative} .tbar i{position:absolute;left:0;top:0;bottom:0;background:var(--acc);border-radius:4px}
+.ttwo{display:flex;justify-content:space-between;color:var(--dim);font-size:13px}
+.tbig{font-size:30px;font-weight:800;color:var(--acc)}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px} .tgrid div{background:rgba(255,255,255,.045);border-radius:12px;padding:10px} .tgrid small{color:var(--faint);font-size:11px;letter-spacing:1px;display:block;text-transform:uppercase} .tgrid b{font-size:17px}
+.btn.wide{display:block;width:100%;margin-top:12px;padding:14px;font-size:16px}
 pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overflow:auto;background:#0a0e14;padding:10px;border-radius:10px}
 </style>
 </head>
@@ -97,6 +113,23 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overfl
   </div>
   <div class="card"><h2>Live view <span style="float:right;text-transform:none;letter-spacing:0;color:var(--faint)" id="shotAge"></span></h2><img id="shot" alt=""></div>
   <div class="card list"><h2>Overhead now</h2><div id="flights"><div class="note">Waiting for the display…</div></div></div>
+</section>
+
+<!-- TRACK -->
+<section class="page" id="p-track">
+  <div id="tNow"></div>
+  <div id="tFind">
+    <div class="card"><h2>Flight</h2>
+      <div class="tsearch"><input type="text" id="tQ" placeholder="KL605" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn" id="tGo">Find</button></div>
+      <div class="note">Flight number or callsign, any airline worldwide (KL605, KLM605, BA286)</div>
+      <div id="tRes"></div>
+    </div>
+    <div class="card"><h2>Options</h2>
+      <div class="row"><div class="l">Back to local view after landing<small>Ends tracking 10 min after touchdown</small></div><label class="sw"><input type="checkbox" id="tBack" checked><span></span></label></div>
+      <div class="row"><div class="l">Show planes right overhead<small>Briefly switches back when one is within 3 km</small></div><label class="sw"><input type="checkbox" id="tOvh"><span></span></label></div>
+    </div>
+    <div class="card" id="tRecentCard"><h2>Recent</h2><div class="chips" id="tRecent"></div></div>
+  </div>
 </section>
 
 <!-- DISPLAY -->
@@ -207,6 +240,7 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overfl
 </section>
 
 <nav>
+  <a data-p="track"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" stroke-linejoin="round"/></svg>Track</a>
   <a data-p="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v10H3z"/></svg>Home</a>
   <a data-p="display"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Display</a>
   <a data-p="schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Schedule</a>
@@ -319,6 +353,7 @@ function status(){
   $('#kv').innerHTML=kv.map(([k,v])=>`<div>${k}</div><div>${v==null?'–':v}</div>`).join('');
   const w=ST.wifi||{}; $('#wkv').innerHTML=[['Drop-outs (24 h)',w.drops24h],['Drop-outs (7 days)',w.drops7d],['Automatic wifi resets (7 days)',w.resets7d],['Last check',w.last||'–']].map(([k,v])=>`<div>${k}</div><div>${v==null?'–':v}</div>`).join('');
   const ev=(w.recent||[]).slice().reverse(); $('#wev').innerHTML=ev.length?ev.map(e=>`<div class="f" style="grid-template-columns:96px 1fr auto"><div class="rt">${new Date(e.t).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div>${e.detail}</div><div class="al">${e.secs?e.secs+' s':''}</div></div>`).join(''):'<div class="note">No drop-outs recorded.</div>';
+  if(page==='track') trackPage();
   const fl=dsp.flights||[], U=S.units==='metric';
   $('#flights').innerHTML=fl.length?fl.map(f=>`<div class="f"><div class="cs">${f.cs||f.reg||'—'}</div><div class="rt">${f.from&&f.to?f.from+' → '+f.to:(f.type||'')}</div><div class="al">${U?Math.round(f.alt*0.3048).toLocaleString()+' m':Math.round(f.alt).toLocaleString()+' ft'}</div></div>`).join(''):'<div class="note">No aircraft nearby right now.</div>';
 }
@@ -342,7 +377,7 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('[data-t]'); if(t){ setPatch('theme',t.dataset.t); fill() }
   const c=e.target.closest('[data-c]'); if(c){ setPatch('accent',c.dataset.c); fill() }
   const d=e.target.closest('[data-d]'); if(d){ const days=((S.schedule&&S.schedule.days)||[1,1,1,1,1,1,1]).slice(); days[+d.dataset.d]=days[+d.dataset.d]?0:1; setPatch('schedule.days',days); fill() }
-  const n=e.target.closest('nav a'); if(n){ page=n.dataset.p; $$('nav a').forEach(x=>x.classList.toggle('on',x===n)); $$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+page)); window.scrollTo(0,0); if(page==='home') shot() }
+  const n=e.target.closest('nav a'); if(n){ page=n.dataset.p; $$('nav a').forEach(x=>x.classList.toggle('on',x===n)); $$('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+page)); window.scrollTo(0,0); if(page==='home') shot(); if(page==='track') trackPage() }
   const a=e.target.closest('[data-act]'); if(a){ const act=a.dataset.act;
     if((act==='reset'||act==='reboot'||act==='new_remote_link')&&!confirm(act==='reset'?'Reset every setting to the defaults?':act==='reboot'?'Reboot the frame?':'Make a new remote link? The old link will stop working, also on your own phone.')) return;
     try{ const r=await post('action',{action:act}); toast(r.ok?({identify:'Address shown on the frame',new_remote_link:'New link made. Open it on your phone again',update:'Display updated',restart:'Restarting…',reboot:'Rebooting…',reset:'Settings reset',clear_cache:'Cache cleared'}[act]||'Done'):(r.error||'Failed')); if(act==='reset'||act==='new_remote_link') load() }catch(err){ toast('Failed: '+err.message.slice(0,60)) } }
@@ -367,6 +402,69 @@ $('#here').onclick=()=>{ if(!navigator.geolocation) return toast('Location not a
   navigator.geolocation.getCurrentPosition(p=>{ setPatch('lat',+p.coords.latitude.toFixed(4)); setPatch('lon',+p.coords.longitude.toFixed(4)); fill(); toast('Location set') },()=>toast('Location needs https — search instead')) };
 $('#mapUp').onclick=async()=>{ const fs=Array.from($('#mapFiles').files); if(!fs.length) return toast('Choose radarmap.jpg and radarmap.js');
   for(const f of fs){ const name=/\.js$/i.test(f.name)?'radarmap.js':'radarmap.jpg'; await api('file?name='+name,{method:'POST',body:await f.arrayBuffer()}) } toast('Map uploaded'); load() };
+
+// ---- Track a flight: find it here, the frame does the tracking ----
+const TR={found:null, routes:{}, tz:{}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function tRecent(){ try{ return JSON.parse(localStorage.getItem('ff_trecent')||'[]') }catch(e){ return [] } }
+async function tRoute(cs){
+  if(TR.routes[cs]!==undefined) return TR.routes[cs];
+  let r=null; try{ const j=await fetch('https://api.adsbdb.com/v0/callsign/'+encodeURIComponent(cs)).then(x=>x.ok?x.json():null); r=j&&j.response&&j.response.flightroute||null }catch(e){}
+  TR.routes[cs]=r; if(r&&r.callsign_icao) TR.routes[r.callsign_icao]=r;
+  if(r&&r.destination&&!TR.tz[r.destination.icao_code]) fetch('https://api.open-meteo.com/v1/forecast?latitude='+r.destination.latitude+'&longitude='+r.destination.longitude+'&timezone=auto&current=temperature_2m').then(x=>x.json()).then(w=>{ TR.tz[r.destination.icao_code]=w.timezone; trackPage() }).catch(()=>{});
+  return r;
+}
+const tNum=(r,cs)=>r&&r.callsign_iata?r.callsign_iata.replace(/^([A-Z0-9]{2})(\d)/,'$1 $2'):cs;
+const tTime=(ms,tz)=>{ try{ return new Date(ms).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',timeZone:tz||undefined}) }catch(e){ return new Date(ms).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) } };
+const tDur=m=>{ m=Math.max(1,Math.round(m)); const h=Math.floor(m/60); return h?h+' h '+(m%60)+' min':m+' min' };
+function tRouteHtml(r){ if(!r||!r.origin||!r.destination) return '';
+  return `<div class="trt"><b>${esc(r.origin.iata_code||r.origin.icao_code)}<small>${esc(r.origin.municipality||'')}</small></b><span class="ln"></span><b style="text-align:right">${esc(r.destination.iata_code||r.destination.icao_code)}<small>${esc(r.destination.municipality||'')}</small></b></div>` }
+async function tFind(q){
+  q=(q||$('#tQ').value).toUpperCase().replace(/[^A-Z0-9]/g,''); if(q.length<3) return toast('Type a flight number, like KL605');
+  $('#tQ').value=q; $('#tRes').innerHTML='<div class="note">Looking…</div>';
+  const r=await tRoute(q), cs=(r&&r.callsign_icao)||q;
+  let live=null, err=false; try{ const j=await api('lookup?cs='+cs); live=(j.ac||j.aircraft||[]).filter(a=>a.lat!=null)[0]||null }catch(e){ err=true }
+  if(!r&&!live){ $('#tRes').innerHTML='<div class="note">'+(err?'Could not ask the frame. Is it online?':'No flight found for '+esc(q)+'. Try the airline\'s three-letter callsign too, like KLM605.')+'</div>'; TR.found=null; return }
+  TR.found={q,cs,r,live};
+  const U=S.units==='metric', air=live&&live.alt_baro!=='ground';
+  const tag=live?(air?'<span class="ttag">AIRBORNE</span>':'<span class="ttag w">ON THE GROUND</span>'):'<span class="ttag g">NOT FLYING NOW</span>';
+  const meta=live?(air?[live.alt_baro?(U?Math.round(live.alt_baro*0.3048).toLocaleString()+' m':live.alt_baro.toLocaleString()+' ft'):'', (live.desc||live.t||'').replace(/\b([A-Z])([A-Z]{3,})\b/g,(m,x,y)=>x+y.toLowerCase())].filter(Boolean).join(' · '):'At the airport · tracking starts at take-off'):'The frame waits and starts tracking at take-off';
+  $('#tRes').innerHTML=`<div class="tres"><div class="a"><div><div class="fn">${esc(tNum(r,cs))}</div><div class="al">${esc(r&&r.airline?r.airline.name:cs)}</div></div>${tag}</div>${tRouteHtml(r)}<div class="tmeta">${esc(meta)}</div></div>
+    <button class="btn acc wide" id="tShow">Show on frame</button>`;
+  $('#tShow').onclick=tStart;
+}
+async function tStart(){
+  const f=TR.found; if(!f) return;
+  try{ await post('settings',{track:{active:true,cs:f.cs,q:f.q,back:$('#tBack').checked,overhead:$('#tOvh').checked,started:Date.now()}});
+    const rec=[f.q].concat(tRecent().filter(x=>x!==f.q)).slice(0,6); localStorage.setItem('ff_trecent',JSON.stringify(rec));
+    S.track=Object.assign({},S.track,{active:true,cs:f.cs,q:f.q}); toast('Showing on the frame'); setTimeout(refresh,4000); trackPage() }
+  catch(e){ if(e.message!=='pin') toast('Could not reach the frame') }
+}
+async function tStop(){
+  try{ await post('settings',{track:{active:false}}); S.track=Object.assign({},S.track,{active:false}); toast('Back to local flights'); trackPage() }catch(e){ toast('Could not reach the frame') }
+}
+async function trackPage(){
+  const t=S.track||{}, on=!!(t.active&&t.cs);
+  $('#tFind').style.display=on?'none':'';
+  const rec=tRecent(); $('#tRecentCard').style.display=rec.length?'':'none'; $('#tRecent').innerHTML=rec.map(x=>`<span class="chip" data-tq="${esc(x)}">${esc(x)}</span>`).join('');
+  if(!on){ $('#tNow').innerHTML=t.ended==='landed'&&t.endedAt&&Date.now()-t.endedAt<6*3600e3?`<div class="card"><div class="note" style="margin:0">${esc(t.q||t.cs)} landed · the frame is back to local flights</div></div>`:''; return }
+  const r=await tRoute(t.cs), d=(ST.display||{}).track||{}, U=S.units==='metric', dest=r&&r.destination;
+  const ph=d.phase||'wait', tag=ph==='air'?(d.est?'<span class="ttag w">ESTIMATED</span>':'<span class="ttag">'+((d.alt||0)>25000?'CRUISING':'IN FLIGHT')+'</span>'):ph==='landed'?'<span class="ttag">LANDED</span>':'<span class="ttag g">WAITING FOR TAKE-OFF</span>';
+  const km=v=>U?Math.round(v).toLocaleString()+' km':Math.round(v/1.609).toLocaleString()+' mi';
+  let body='';
+  if(ph==='air'&&d.leftKm!=null){ const pc=Math.round(100*d.flownKm/Math.max(1,d.flownKm+d.leftKm)), sp=d.gs&&d.gs>150?d.gs*1.852:820, mins=d.leftKm/sp*60+(d.leftKm>150?12:4), at=Date.now()+mins*60e3, tz=dest&&TR.tz[dest.icao_code];
+    body=`<div class="tbar"><i style="width:${pc}%"></i></div><div class="ttwo"><span>${km(d.flownKm)} flown</span><span>${km(d.leftKm)} to go</span></div>
+      <div style="margin-top:14px;color:var(--dim);font-size:13px">Lands in about</div><div class="tbig">${tDur(mins)}</div><div class="tmeta">≈ ${tz?tTime(at,tz)+' in '+esc(dest.municipality)+' · ':''}${tTime(at)} here</div>
+      <div class="tgrid"><div><small>Now over</small><b>${esc(d.over||'–')}</b></div><div><small>Altitude</small><b>${typeof d.alt==='number'?(U?Math.round(d.alt*0.3048).toLocaleString()+' m':d.alt.toLocaleString()+' ft'):'–'}</b></div>
+      <div><small>Speed</small><b>${d.gs?(U?Math.round(d.gs*1.852)+' km/h':Math.round(d.gs*1.151)+' mph'):'–'}</b></div><div><small>Position</small><b>${d.est?'Estimated':'Live'}</b></div></div>` }
+  else if(ph==='landed'){ body=`<div class="tmeta" style="margin-top:10px">Landed at ${tTime(d.landedAt||Date.now(),dest&&TR.tz[dest.icao_code])} local time${t.back!==false?' · the frame switches back to local flights soon':''}</div>` }
+  else body='<div class="tmeta" style="margin-top:10px">The frame shows the route now and starts tracking as soon as the flight takes off.</div>';
+  $('#tNow').innerHTML=`<div class="card"><h2>Now tracking</h2><div class="tres" style="margin-top:0"><div class="a"><div><div class="fn">${esc(tNum(r,t.cs))}</div><div class="al">${esc(r&&r.airline?r.airline.name:t.cs)}</div></div>${tag}</div>${tRouteHtml(r)}${body}</div>
+    <button class="btn red wide" id="tStop">Stop tracking</button></div>`;
+  $('#tStop').onclick=tStop;
+}
+$('#tGo').onclick=()=>tFind(); $('#tQ').onkeydown=e=>{ if(e.key==='Enter') tFind() };
+document.addEventListener('click',e=>{ const c=e.target.closest('[data-tq]'); if(c) tFind(c.dataset.tq) });
 
 if(REMOTE){ document.body.classList.add('remote'); $('#shot').onclick=()=>shot(true) }
 if(REMOTE&&(!RID||!RKEY)){ $('#connTxt').textContent='Open the remote link from your frame first (Frame → Remote access)'; }

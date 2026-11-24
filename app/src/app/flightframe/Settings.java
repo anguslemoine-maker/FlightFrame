@@ -70,6 +70,8 @@ public final class Settings {
             d.put("pin", "");
             JSONObject rmt = new JSONObject(); rmt.put("enabled", false); rmt.put("id", ""); rmt.put("key", ""); d.put("remote", rmt);
             d.put("updateBase", "");
+            JSONObject trk = new JSONObject(); trk.put("active", false); trk.put("cs", ""); trk.put("q", ""); trk.put("back", true); trk.put("overhead", false); trk.put("started", 0);
+            d.put("track", trk);
             return d;
         } catch (Exception e) { throw new RuntimeException(e); }
     }

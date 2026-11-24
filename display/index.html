@@ -200,6 +200,42 @@
 
   #chart{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0}
   #radar{position:relative;z-index:1}
+  /* ===== tracking a flight anywhere in the world ===== */
+  #trk{position:absolute;left:0;top:0;right:0;bottom:0;background:var(--bg);z-index:20;display:none;flex-direction:column;padding:34px 40px 30px}
+  #trk.on{display:flex}
+  #trk .thdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  #trk .tplace{font-size:20px;letter-spacing:5px;color:var(--dim);text-transform:uppercase} #trk .tplace b{color:var(--amber)}
+  #trk .tst{font-size:15px;color:var(--faint);margin-top:6px;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center}
+  #trk .tst i{width:10px;height:10px;border-radius:50%;background:var(--faint);display:inline-block;margin-right:10px;flex:none} #trk .tst i.live{background:var(--green);box-shadow:0 0 10px var(--green)} #trk .tst i.est{background:var(--amber)}
+  #trk .tclock{font-size:44px;font-weight:300;letter-spacing:1px}
+  #trk .tbody{flex:1;min-height:0;display:grid;grid-template-columns:100%;grid-template-rows:auto 1fr auto;grid-template-areas:"info" "map" "stats"}
+  #trk .tinfo{grid-area:info} #trk .tmap{grid-area:map} #trk .tstats{grid-area:stats}
+  #trk .tair{display:flex;align-items:center;margin-top:26px;min-height:64px}
+  #trk .tlogo{height:64px;background:#fff;border-radius:12px;padding:8px 14px;margin-right:20px;display:none} #trk .tlogo img{height:48px;display:block}
+  #trk .taname{font-size:30px;color:var(--dim);letter-spacing:1px}
+  #trk .ttop{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px}
+  #trk .tfno{font-size:96px;font-weight:700;line-height:1;letter-spacing:-2px;white-space:nowrap} #trk .tfno small{font-size:24px;color:var(--faint);font-weight:400;letter-spacing:2px;margin-left:14px}
+  #trk .teta{text-align:right} #trk .teta .k{font-size:16px;letter-spacing:3px;color:var(--faint);text-transform:uppercase} #trk .teta .v{font-size:52px;font-weight:700;color:var(--amber);white-space:nowrap} #trk .teta .s{font-size:22px;color:var(--dim)}
+  #trk .trt{display:flex;justify-content:space-between;margin-top:26px}
+  #trk .trt .code{font-size:64px;font-weight:700;line-height:1} #trk .trt .city{font-size:24px;color:var(--dim);margin-top:4px} #trk .trt .r{text-align:right}
+  #trk .tbar{height:10px;background:var(--line);border-radius:5px;margin:18px 0 10px;position:relative}
+  #trk .tbar i{position:absolute;left:0;top:0;bottom:0;background:var(--amber);border-radius:5px} #trk .tbar b{position:absolute;top:50%;width:22px;height:22px;margin:-11px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 6px rgba(255,178,56,.2)}
+  #trk .tbl{display:flex;justify-content:space-between;font-size:20px;color:var(--dim)}
+  #trk .tmap{margin:22px -40px 0;position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;min-height:0}
+  #trk .tmap svg{position:absolute;left:0;top:0;width:100%;height:100%}
+  #trk .tover{position:absolute;left:40px;bottom:26px;background:rgba(7,9,13,.82);border:1px solid var(--line);border-radius:14px;padding:12px 18px;display:none}
+  #trk .tover .k{font-size:14px;letter-spacing:3px;color:var(--faint);text-transform:uppercase} #trk .tover .v{font-size:30px;font-weight:600;margin-top:2px} #trk .tover .s{font-size:20px;color:var(--dim)}
+  #trk .tstats{display:grid;grid-template-columns:1fr 1fr 1fr;grid-gap:10px;margin-top:26px}
+  #trk .tstats .k{font-size:15px;letter-spacing:3px;color:var(--faint);text-transform:uppercase} #trk .tstats .v{font-size:40px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #trk .tstats .s{font-size:20px;color:var(--dim);margin-top:2px}
+  #trk .tfoot{display:flex;justify-content:space-between;align-items:center;font-size:19px;color:var(--faint);border-top:1px solid var(--line);padding-top:18px;margin-top:22px}
+  #trk .tpill{border:1px solid var(--line);border-radius:30px;padding:8px 16px;color:var(--dim)} #trk .tpill b{color:var(--text)}
+  #trk .tbig{font-size:46px;font-weight:700;margin-top:30px} #trk .tbig small{display:block;font-size:24px;color:var(--dim);font-weight:400;margin-top:8px}
+  .L #trk{padding:24px 36px 22px}
+  .L #trk .tbody{grid-template-columns:560px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"info map" "stats map";column-gap:0}
+  .L #trk .tmap{margin:0 -36px 0 30px;border:0;border-left:1px solid var(--line)}
+  .L #trk .tfno{font-size:76px} .L #trk .ttop{display:block} .L #trk .teta{text-align:left;margin-top:18px} .L #trk .trt .code{font-size:54px}
+  .L #trk .tstats{grid-template-columns:1fr 1fr;grid-row-gap:22px;align-content:start}
+  .L #trk .tover{left:30px}
 </style>
 </head>
 <body>
@@ -247,6 +283,20 @@
     <div id="list"><div class="lhead">Also nearby</div><div id="rows"></div></div>
   </div>
   </div>
+  <div id="trk">
+    <div class="thdr"><div><div class="tplace">Tracking · <b id="tCs"></b></div><div class="tst"><i id="tDot"></i><span id="tSt">Looking for the flight…</span></div></div><div class="tclock mono" id="tClock"></div></div>
+    <div class="tbody">
+      <div class="tinfo">
+        <div class="tair"><div class="tlogo" id="tLogo"><img id="tLogoImg" alt=""></div><div class="taname" id="tAname"></div></div>
+        <div class="ttop"><div class="tfno" id="tFno"></div><div class="teta" id="tEta"></div></div>
+        <div class="trt" id="tRt"></div>
+        <div id="tProg"></div>
+      </div>
+      <div class="tmap" id="tMap"><svg id="tSvg"><g id="tBase"></g><g id="tOver"></g></svg><div class="tover" id="tOverBox"><div class="k" id="tOk">Now over</div><div class="v" id="tOv"></div><div class="s" id="tOs"></div></div></div>
+      <div class="tstats" id="tStats"></div>
+    </div>
+    <div class="tfoot"><span id="tFootL"></span><span class="tpill" id="tFootR"></span></div>
+  </div>
   <script src="planes.js"></script>
   <script src="settings.js"></script>
   <script src="schiphol.js"></script>
@@ -285,7 +335,7 @@
   var DEF={name:'Leiderdorp',lat:52.1583,lon:4.5333,tz:'',radiusKm:18,radarRange:20,units:'metric',theme:'midnight',accent:'',
     rotation:'auto',showMap:true,showRadar:true,showList:true,listCount:4,showPlane:true,showWeather:true,showRain:true,showISS:true,mapCredit:true,showChart:true,
     clock24:true,nightDim:true,nightFrom:'23:00',nightTo:'07:00',nightLevel:65,minAltFt:0,maxAltFt:60000,featured:'nearest',cycleSec:20,
-    pollSec:8,hideNoCallsign:false,schiphol:{id:'',secret:''}};
+    pollSec:8,hideNoCallsign:false,schiphol:{id:'',secret:''},track:{active:false}};
   var CFG={}; (function(){
     var s={}; try{ if(window.FFApp&&FFApp.getSettings) s=JSON.parse(FFApp.getSettings()); else if(window.FF_SETTINGS) s=window.FF_SETTINGS }catch(e){}
     for(var k in DEF) CFG[k]=(s&&s[k]!==undefined&&s[k]!==null&&s[k]!=='')?s[k]:DEF[k];
@@ -1113,6 +1163,7 @@
   function report(){
     if(!(window.FFApp&&FFApp.report)) return;
     try{ FFApp.report(JSON.stringify({t:Date.now(),count:lastData.length,featured:featured,
+      track:(typeof tReport==='function'?tReport():null),
       flights:lastData.slice(0,12).map(function(a){ var c=cs(a), r=routes[c]&&routes[c].d; return {cs:c,reg:a.r||'',type:a.t||'',alt:a.alt_baro,km:Math.round(a.km*10)/10,
         from:r&&r.origin?r.origin.iata_code:'',to:r&&r.destination?r.destination.iata_code:''} })})) }catch(e){}
   }
@@ -1176,6 +1227,196 @@
     ch.innerHTML='<g opacity=".55">'+h+'</g>';
   }
   window.__rc=renderChart; if(CFG.showChart!==false) setTimeout(renderChart,300); window.addEventListener('resize',function(){ setTimeout(renderChart,100) });
+  // ===================== tracking one flight anywhere in the world (started from the phone app) =====================
+  var TK=(CFG.track&&CFG.track.active&&CFG.track.cs)?CFG.track:null;
+  var T={phase:'wait',route:null,pos:null,seen:0,hex:'',info:null,tz:'',landedAt:0,base:'',proj:null,lastRun:0,src:0,osAt:0,hidden:false};
+  function loadScript(src){ return new Promise(function(ok,bad){ var s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=bad; document.head.appendChild(s) }) }
+  var SEAS=[['North Sea',56,3,450],['Norwegian Sea',68,2,600],['Irish Sea',53.8,-5,150],['English Channel',50.2,-1.5,170],['Bay of Biscay',45,-4,300],['Mediterranean Sea',37,18,1100],
+    ['Black Sea',43.3,34,450],['Baltic Sea',58,19,450],['Labrador Sea',58,-55,500],['Davis Strait',66.5,-58,330],['Baffin Bay',73,-66,450],['Hudson Bay',60,-85,600],
+    ['Gulf of Mexico',25,-90,700],['Caribbean Sea',15,-75,900],['Red Sea',20,38.5,600],['Persian Gulf',26.5,52,350],['Arabian Sea',15,63,900],['Bay of Bengal',15,88,800],
+    ['South China Sea',13,114,900],['East China Sea',29,126,500],['Sea of Japan',40,135,500],['Tasman Sea',-38,160,900],['Coral Sea',-18,155,800],['Gulf of Alaska',57,-145,600],
+    ['Bering Sea',58,-178,800],['Greenland Sea',76,-5,500],['Barents Sea',74,40,600],['Caspian Sea',42,51,400],['Gulf of Guinea',2,3,700],['Mozambique Channel',-18,41,450],['Sea of Okhotsk',53,150,700]];
+  var DIRW={N:'north',NE:'north-east',E:'east',SE:'south-east',S:'south',SW:'south-west',W:'west',NW:'north-west'};
+  function overWhat(lat,lon){
+    var W=window.FF_WORLD, g=window.d3; if(!W||!g) return null;
+    var pt=[lon,lat], fs=W.countries.features, i;
+    for(i=0;i<fs.length;i++) if(g.geoContains(fs[i],pt)) return {v:fs[i].properties.n,s:''};
+    var best=null, bs=1;
+    SEAS.forEach(function(x){ var r=hav(lat,lon,x[1],x[2])/x[3]; if(r<bs){ bs=r; best=x[0] } });
+    if(!best){
+      if(lat>72) best='Arctic Ocean'; else if(lat<-58) best='Southern Ocean';
+      else if(lon>-100&&lon<20&&!(lon<-70&&lat<10)) best='Atlantic Ocean'; else if(lon>=20&&lon<120&&lat<28) best='Indian Ocean'; else best='Pacific Ocean';
+    }
+    var nc=null, nd=1e9; fs.forEach(function(f){ var c=f.properties.c, d=hav(lat,lon,c[1],c[0]); if(d<nd){ nd=d; nc=f } });
+    var sub=''; if(nc && nd<2500){ var c=nc.properties.c; sub=DIRW[compass(bearingTo(c[1],c[0],lat,lon))]+' of '+nc.properties.n }
+    return {v:best,s:sub};
+  }
+  function tFmtTime(ms,tz){ try{ return new Intl.DateTimeFormat('en-GB',{timeZone:tz||undefined,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(ms)).split(':') }catch(e){ var d=new Date(ms); return [d.getHours(),pad(d.getMinutes())] } }
+  function tClockAt(ms,tz){ var p=tFmtTime(ms,tz); return clk(parseInt(p[0],10)%24,p[1]) }
+  function tDur(min){ min=Math.max(1,Math.round(min)); var h=Math.floor(min/60), m=min%60; return h?h+' h '+m+' min':m+' min' }
+  function tRoute(){
+    if(!TK) return; var c=TK.cs;
+    getJSON('https://api.adsbdb.com/v0/callsign/'+encodeURIComponent(c),9000).then(function(j){
+      var r=j&&j.response&&j.response.flightroute; if(!r) throw 0;
+      T.route={o:r.origin,d:r.destination,al:r.airline,iata:r.callsign_iata}; T.base=''; tRender();
+      if(r.destination) getJSON('https://api.open-meteo.com/v1/forecast?latitude='+r.destination.latitude+'&longitude='+r.destination.longitude+'&timezone=auto&current=temperature_2m',9000)
+        .then(function(w){ T.tz=w.timezone||''; tRender() }).catch(function(){});
+    }).catch(function(){ setTimeout(tRoute,120000) });
+  }
+  function tPoll(){
+    if(!TK) return;
+    var now=Date.now(); if(now-T.lastRun<(T.phase==='wait'?30000:10000)) return; T.lastRun=now;
+    var urls=['https://opendata.adsb.fi/api/v2/callsign/'+TK.cs,'https://api.adsb.lol/v2/callsign/'+TK.cs];
+    var u=urls[T.src%2];
+    getJSON(u,9000).then(function(j){
+      var list=(j.ac||j.aircraft||[]).filter(function(a){ return a.lat!=null });
+      if(!list.length){ if(T.hex && now-T.osAt>120000 && now-T.seen>60000) tOpenSky(); else tRender(); return }
+      var a=list[0]; if(T.hex) list.forEach(function(x){ if(x.hex===T.hex) a=x });
+      tGot(a);
+    }).catch(function(){ T.src++; tRender() });
+  }
+  function tOpenSky(){
+    T.osAt=Date.now();
+    getJSON('https://opensky-network.org/api/states/all?icao24='+T.hex,9000).then(function(j){
+      var v=j&&j.states&&j.states[0]; if(!v||v[6]==null||Date.now()/1000-v[4]>120){ tRender(); return }
+      tGot({hex:v[0],flight:v[1],lat:v[6],lon:v[5],alt_baro:v[8]?'ground':(v[7]!=null?Math.round(v[7]/0.3048):null),gs:v[9]!=null?v[9]*1.943844:null,track:v[10],baro_rate:v[11]!=null?Math.round(v[11]*196.85):0});
+    }).catch(function(){ tRender() });
+  }
+  function tGot(a){
+    T.pos={lat:a.lat,lon:a.lon,alt:a.alt_baro,gs:a.gs,trk:a.track,vr:a.baro_rate||a.geom_rate||0,t:Date.now()-((a.seen_pos||a.seen||0)*1000)};
+    T.seen=Date.now(); T.hex=a.hex||T.hex;
+    if(a.t||a.desc) T.info={t:a.t,r:a.r,desc:a.desc,hex:a.hex};
+    else if(!T.info && a.hex) T.info={hex:a.hex};
+    if(T.phase==='wait' && a.alt_baro!=='ground') T.phase='air';
+    var d=T.route&&T.route.d;
+    if(T.phase==='air' && (a.alt_baro==='ground' || (d && typeof a.alt_baro==='number'&&a.alt_baro<600&&(a.gs||0)<90 && hav(a.lat,a.lon,d.latitude,d.longitude)<40))){ T.phase='landed'; T.landedAt=Date.now() }
+    if(a.hex) aircraft(a.hex);
+    tRender();
+  }
+  // where the plane is now: the live position, or carried forward along the route when there is no coverage (oceans)
+  function tNow(){
+    var p=T.pos; if(!p) return null;
+    var age=(Date.now()-p.t)/1000, d=T.route&&T.route.d;
+    if(age<90 || T.phase!=='air' || !d || !window.d3) return {lat:p.lat,lon:p.lon,est:false,age:age};
+    var left=hav(p.lat,p.lon,d.latitude,d.longitude), sp=(p.gs&&p.gs>150?p.gs*1.852:820), go=sp*age/3600;
+    if(left<1) return {lat:d.latitude,lon:d.longitude,est:true,age:age,arrived:true};
+    var f=Math.min(1,go/left), ll=d3.geoInterpolate([p.lon,p.lat],[d.longitude,d.latitude])(f);
+    return {lat:ll[1],lon:ll[0],est:true,age:age,arrived:go>=left};
+  }
+  function tBase(W,H,me){
+    var g=window.d3, Wd=window.FF_WORLD; if(!g||!Wd) return;
+    var o=T.route&&T.route.o, d=T.route&&T.route.d, pts=[];
+    if(o&&d){ var ip=g.geoInterpolate([o.longitude,o.latitude],[d.longitude,d.latitude]); for(var i=0;i<=60;i++) pts.push(ip(i/60)) }
+    if(me) pts.push([me.lon,me.lat]);
+    if(!pts.length) return;
+    var key=W+'x'+H+'|'+JSON.stringify(pts.length>2?[pts[0],pts[60]]:pts);
+    if(key===T.base) return; T.base=key;
+    var mid=o&&d?g.geoInterpolate([o.longitude,o.latitude],[d.longitude,d.latitude])(0.5):pts[0];
+    var proj=g.geoOrthographic().rotate([-mid[0],-mid[1]]).clipAngle(90).precision(0.5);
+    var fit={type:'MultiPoint',coordinates:pts}; if(pts.length===1){ proj.scale(Math.min(W,H)*1.1).translate([W/2,H/2]) } else proj.fitExtent([[110,110],[W-110,H-80]],fit);
+    var sc=proj.scale(); if(sc>Math.min(W,H)*6){ proj.scale(Math.min(W,H)*6) }   // short hops: don't zoom in further than ~country size
+    T.proj=proj; var path=g.geoPath(proj);
+    var h='<path d="'+path({type:'Sphere'})+'" fill="'+TH[1]+'" fill-opacity=".6"/>'+
+      '<path d="'+path(g.geoGraticule().step([10,10])())+'" fill="none" stroke="'+TH[2]+'" stroke-width="1"/>'+
+      '<path d="'+path(Wd.land)+'" fill="'+TH[2]+'" stroke="'+TH[5]+'" stroke-opacity=".6" stroke-width="1.2"/>'+
+      '<path d="'+path(Wd.borders)+'" fill="none" stroke="'+TH[5]+'" stroke-opacity=".35" stroke-width=".8"/>';
+    $('tBase').innerHTML=h;
+  }
+  function tMapDraw(me){
+    var box=$('tMap'), W=box.clientWidth, H=box.clientHeight; if(!W||!H||!window.d3||!window.FF_WORLD) return;
+    $('tSvg').setAttribute('viewBox','0 0 '+W+' '+H);
+    tBase(W,H,me); var proj=T.proj; if(!proj) return;
+    var g=d3, path=g.geoPath(proj), o=T.route&&T.route.o, d=T.route&&T.route.d, h='', P=me?[me.lon,me.lat]:null;
+    function line(a,b,n){ var ip=g.geoInterpolate(a,b), c=[]; for(var i=0;i<=n;i++) c.push(ip(i/n)); return {type:'LineString',coordinates:c} }
+    if(o&&d){
+      var A=[o.longitude,o.latitude], B=[d.longitude,d.latitude];
+      if(P && T.phase!=='wait'){ h+='<path d="'+path(line(P,B,60))+'" fill="none" stroke="'+TH[4]+'" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round"/>';
+        h+='<path d="'+path(line(A,P,60))+'" fill="none" stroke="'+ACC+'" stroke-width="5" stroke-linecap="round"/>' }
+      else h+='<path d="'+path(line(A,B,80))+'" fill="none" stroke="'+TH[4]+'" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round"/>';
+      var pa=proj(A), pb=proj(B);
+      function lab(p,txt,fill,right){ if(!p) return ''; var tx=right?p[0]-18:p[0]+18, anc=right?'end':'start';
+        if(tx<60&&right){ tx=p[0]+18; anc='start' } if(tx>W-60&&!right){ tx=p[0]-18; anc='end' }
+        return '<text x="'+tx.toFixed(0)+'" y="'+(p[1]+10).toFixed(0)+'" text-anchor="'+anc+'" font-size="30" font-weight="700" fill="'+TH[3]+'" stroke="'+TH[0]+'" stroke-width="5" paint-order="stroke">'+esc(txt)+'</text>' }
+      var right=pb&&pa&&pb[0]<pa[0], ppos=(P&&T.phase!=='wait')?proj(P):null;
+      function near(q){ return ppos&&q&&Math.abs(q[0]-ppos[0])<130&&Math.abs(q[1]-ppos[1])<70 }
+      if(pa) h+='<circle cx="'+pa[0].toFixed(1)+'" cy="'+pa[1].toFixed(1)+'" r="9" fill="'+ACC+'"/>'+(near(pa)?'':lab(pa,o.iata_code||o.icao_code,ACC,right));
+      if(pb) h+='<circle cx="'+pb[0].toFixed(1)+'" cy="'+pb[1].toFixed(1)+'" r="9" fill="'+TH[0]+'" stroke="'+TH[3]+'" stroke-width="3"/>'+(near(pb)?'':lab(pb,d.iata_code||d.icao_code,TH[3],!right));
+    }
+    if(P && T.phase!=='wait'){
+      var pp=proj(P); if(pp){
+        var ang=me.trk!=null?me.trk:0;
+        if(d){ var q=proj(g.geoInterpolate(P,[d.longitude,d.latitude])(0.02)); if(q&&(me.est||me.trk==null)) ang=Math.atan2(q[0]-pp[0],-(q[1]-pp[1]))*180/Math.PI }
+        else if(me.trk!=null){ var q2=proj([P[0]+Math.sin(rad(me.trk))*0.5/Math.cos(rad(P[1])),P[1]+Math.cos(rad(me.trk))*0.5]); if(q2) ang=Math.atan2(q2[0]-pp[0],-(q2[1]-pp[1]))*180/Math.PI }
+        h+='<circle cx="'+pp[0].toFixed(1)+'" cy="'+pp[1].toFixed(1)+'" r="70" fill="'+ACC+'" fill-opacity=".14"/><circle cx="'+pp[0].toFixed(1)+'" cy="'+pp[1].toFixed(1)+'" r="36" fill="'+ACC+'" fill-opacity=".16"/>';
+        h+='<g transform="translate('+pp[0].toFixed(1)+','+pp[1].toFixed(1)+') rotate('+ang.toFixed(1)+') scale(4.2)"><path d="'+planePath()+'" fill="'+ACC+'" stroke="'+TH[0]+'" stroke-width=".5"'+(me.est?' fill-opacity=".7"':'')+'/></g>';
+      }
+    }
+    $('tOver').innerHTML=h;
+  }
+  function tRender(){
+    if(!TK) return;
+    var on=!(TK.overhead && lastData.some(function(a){ return a.km<3 }));
+    $('trk').classList.toggle('on',on);
+    var me=tNow(), r=T.route, o=r&&r.o, d=r&&r.d, now=Date.now();
+    if(me&&me.arrived&&T.phase==='air'&&me.age>1200){ T.phase='landed'; T.landedAt=now }
+    // the header
+    var iata=(r&&r.al&&r.al.iata)||'', num=r&&r.iata?r.iata.replace(/^([A-Z0-9]{2})(\d)/,'$1 $2'):TK.cs;
+    $('tCs').textContent=num; $('tFno').innerHTML=esc(num)+(num.replace(' ','')!==TK.cs?'<small>'+esc(TK.cs)+'</small>':'');
+    var p=localTime(); $('tClock').textContent=clk(p.h,p.m);
+    var st, dot='';
+    if(T.phase==='wait'){ st=T.seen?'Found · waiting for take-off':'Waiting for take-off' }
+    else if(T.phase==='landed'){ st='Landed' }
+    else if(me&&me.est){ st='Estimated position · no live coverage here'; dot='est' }
+    else { var ago=me?Math.round(me.age):0; st='Live · updated '+(ago<5?'just now':ago+' s ago'); dot='live' }
+    $('tSt').textContent=st; $('tDot').className=dot;
+    $('tAname').textContent=(r&&r.al&&r.al.name)||'';
+    if(iata){ var src='https://pics.avs.io/240/80/'+iata+'.png'; if($('tLogoImg').getAttribute('src')!==src){ $('tLogo').style.display='none'; $('tLogoImg').onload=function(){ $('tLogo').style.display='block' }; $('tLogoImg').src=src } }
+    // route, progress and arrival estimate
+    function side(a,cls){ return '<div class="'+cls+'"><div class="code">'+(a?esc(a.iata_code||a.icao_code):'– – –')+'</div><div class="city">'+(a?esc(aptCityCountry(a)):'')+'</div></div>' }
+    $('tRt').innerHTML=(o||d)?side(o,'')+side(d,'r'):'';
+    var eta='', prog='';
+    if(o&&d&&me&&T.phase!=='wait'){
+      var fl=hav(o.latitude,o.longitude,me.lat,me.lon), lf=T.phase==='landed'?0:hav(me.lat,me.lon,d.latitude,d.longitude), pc=Math.max(0,Math.min(1,fl/Math.max(1,fl+lf)));
+      if(T.phase==='landed') pc=1;
+      prog='<div class="tbar"><i style="width:'+(pc*100).toFixed(1)+'%"></i><b style="left:'+(pc*100).toFixed(1)+'%"></b></div><div class="tbl"><span>'+fmt(fl/U.dk)+' '+U.d+' flown</span><span>'+Math.round(pc*100)+'%</span><span>'+fmt(lf/U.dk)+' '+U.d+' to go</span></div>';
+      if(T.phase==='landed'){ eta='<div class="k">Landed</div><div class="v">'+tClockAt(T.landedAt,T.tz)+'</div><div class="s">local time · '+tClockAt(T.landedAt,CFG.tz)+' here</div>' }
+      else { var sp=(T.pos.gs&&T.pos.gs>150?T.pos.gs*1.852:820), mins=lf/sp*60+(lf>150?12:4), at=now+mins*60e3;
+        eta='<div class="k">Lands in about</div><div class="v">'+tDur(mins)+'</div><div class="s">≈ '+(T.tz?tClockAt(at,T.tz)+' in '+esc(aptCity(d))+' · ':'')+tClockAt(at,CFG.tz)+' here</div>' }
+    } else if(T.phase==='wait'){ eta='<div class="k">Status</div><div class="v">Not airborne yet</div><div class="s">Tracking starts at take-off</div>' }
+    $('tEta').innerHTML=eta; $('tProg').innerHTML=prog;
+    // now over
+    var ov=me&&T.phase==='air'?overWhat(me.lat,me.lon):null;
+    if(T.phase==='landed'&&d){ ov={v:aptCity(d),s:'on the ground'} }
+    $('tOverBox').style.display=ov?'block':'none'; if(ov){ $('tOk').textContent=T.phase==='landed'?'Now at':'Now over'; $('tOv').textContent=ov.v; $('tOs').textContent=ov.s }
+    // stats
+    var sx='';
+    if(me&&T.pos&&T.phase==='air'){ var al=T.pos.alt, vr=T.pos.vr||0;
+      var A1=typeof al==='number'?(U.a==='m'?fmt(al*0.3048)+' m':fmt(al)+' ft'):'–', A2=typeof al==='number'?(U.a==='m'?fmt(al)+' ft':fmt(al*0.3048)+' m'):'';
+      sx+='<div><div class="k">Altitude</div><div class="v">'+A1+'</div><div class="s">'+A2+(vr>300?' · climbing':vr<-300?' · descending':' · cruising')+'</div></div>';
+      sx+='<div><div class="k">Speed</div><div class="v">'+(T.pos.gs!=null?fmt(T.pos.gs*U.sk)+' '+U.s:'–')+'</div><div class="s">'+(T.pos.gs!=null?(U.s==='kt'?fmt(T.pos.gs*1.852)+' km/h':fmt(T.pos.gs)+' kt'):'')+(T.pos.trk!=null?' · heading '+compass(T.pos.trk):'')+'</div></div>' }
+    var ac=T.hex&&craft[T.hex]&&craft[T.hex].st==='ok'?craft[T.hex].d:null, inf=T.info||{};
+    var tn=typeName({t:inf.t,desc:inf.desc},ac);
+    if(tn||inf.r) sx+='<div><div class="k">Aircraft</div><div class="v">'+esc(tn||'Unknown')+'</div><div class="s">'+esc([inf.r||(ac&&ac.registration),inf.t].filter(Boolean).join(' · '))+'</div></div>';
+    $('tStats').innerHTML=sx;
+    $('tFootL').textContent=TK.back!==false?'Back to local flights when it lands':'Stop tracking from the phone app';
+    $('tFootR').innerHTML='<b>'+lastData.length+'</b> aircraft overhead now';
+    if(on) tMapDraw(me);
+    // finished: landed 10 minutes ago, or never took off within 18 hours
+    if(TK.back!==false && ((T.phase==='landed'&&now-T.landedAt>10*60e3) || (T.phase==='wait'&&now-(TK.started||now)>18*3600e3) || (T.phase==='air'&&me&&me.age>5*3600))){
+      var why=T.phase==='landed'?'landed':'not seen'; TK=null; $('trk').classList.remove('on');
+      if(window.FFApp&&FFApp.endTrack) FFApp.endTrack(why);
+    }
+  }
+  function tReport(){ if(!TK) return null; var me=tNow(), d=T.route&&T.route.d;
+    return {cs:TK.cs,phase:T.phase,est:!!(me&&me.est),lat:me?me.lat:null,lon:me?me.lon:null,alt:T.pos?T.pos.alt:null,gs:T.pos?T.pos.gs:null,
+      leftKm:me&&d?Math.round(hav(me.lat,me.lon,d.latitude,d.longitude)):null,flownKm:me&&T.route&&T.route.o?Math.round(hav(T.route.o.latitude,T.route.o.longitude,me.lat,me.lon)):null,
+      over:me&&T.phase==='air'?(overWhat(me.lat,me.lon)||{}).v:null, from:T.route&&T.route.o?T.route.o.iata_code:'',to:d?d.iata_code:'',landedAt:T.landedAt||0} }
+  if(TK){
+    $('trk').classList.add('on'); tRender();
+    loadScript('d3-array.min.js').then(function(){ return loadScript('d3-geo.min.js') }).then(function(){ return loadScript('world.js') }).then(function(){ T.base=''; tRender() }).catch(function(){});
+    tRoute(); setInterval(tPoll,1000); setInterval(tRender,5000); tPoll();
+    window.addEventListener('resize',function(){ T.base=''; setTimeout(tRender,150) });
+  }
   poll(); setInterval(poll,1000);
   // reload the page every 6 hours to keep things fresh
   setTimeout(function(){location.reload()},6*3600e3);

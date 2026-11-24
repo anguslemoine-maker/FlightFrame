@@ -249,5 +249,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void report(String json) { lastReport = json; lastReportAt = System.currentTimeMillis(); lastHeartbeat = lastReportAt; }
         @JavascriptInterface public String version() { return BuildInfo.VERSION; }
         @JavascriptInterface public void log(String s) { MainActivity.log("page: " + s); }
+        /** The display ends a flight it was tracking (landed, or never took off); no reload, the page switches back itself. */
+        @JavascriptInterface public void endTrack(String why) {
+            try { Settings.update(MainActivity.this, new org.json.JSONObject().put("track", new org.json.JSONObject().put("active", false).put("ended", why).put("endedAt", System.currentTimeMillis()))); MainActivity.log("tracking ended: " + why); } catch (Exception e) {}
+        }
     }
 }

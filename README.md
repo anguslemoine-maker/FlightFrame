@@ -2,7 +2,7 @@
 
 **Turn a cheap Android photo frame into a live display of the planes flying over your home.**
 
-Flight Frame shows the nearest aircraft with its airline, flight number, route, a drawing of the actual aircraft type, altitude, speed and distance, plus a radar map of everything around you. When the sky is empty it shows the time, weather, a rain chart, sunrise/sunset and the next space-station pass. You control it all from a phone app.
+Flight Frame shows the nearest aircraft with its airline, flight number, route, a drawing of the actual aircraft type, altitude, speed and distance, plus a radar map of everything around you. From the phone app you can also send any flight in the world to the frame and follow it on a globe until it lands. When the sky is empty it shows the time, weather, a rain chart, sunrise/sunset and the next space-station pass. You control it all from a phone app.
 
 <p align="center">
   <img src="docs/img/display-landscape.png" width="78%" alt="Flight Frame in landscape">
@@ -18,7 +18,7 @@ Flight Frame shows the nearest aircraft with its airline, flight number, route, 
 |---|---|
 | **Display** (`display/`) | The page the frame shows. Live data, airline colours on the plane drawings, route arc, radar with a map of your area, empty-sky screen. Metric, imperial or aviation units. Six themes. |
 | **Frame app** (`app/`) | A small kiosk app (no Google Play needed): full screen, starts on boot, keeps the screen on, restarts the display if it ever freezes, turns the screen off and on by schedule, and runs the phone-control server. Replaces Fully Kiosk. |
-| **Phone app** (`companion/`) | Served by the frame itself — open it in your phone's browser and *Add to Home Screen*. Screen on/off, brightness, live view of the frame, themes, units, layout, schedule, night dimming, location search, radar map upload, Schiphol keys, status, backup/restore, PIN. |
+| **Phone app** (`companion/`) | Served by the frame itself — open it in your phone's browser and *Add to Home Screen*. Track any flight worldwide on the frame, Screen on/off, brightness, live view of the frame, themes, units, layout, schedule, night dimming, location search, radar map upload, Schiphol keys, status, backup/restore, PIN. |
 | **Tools** (`tools/`) | One-command installer for Mac/Linux (`install.sh`) and Windows (`install.ps1`), and `make_map.py` to make the radar map for any location. |
 
 <p align="center">
@@ -69,6 +69,7 @@ All free, no keys needed (except the optional Schiphol one):
 - **Routes & aircraft details:** [adsbdb.com](https://www.adsbdb.com) and [hexdb.io](https://hexdb.io), cross-checked against the plane's live position and heading
 - **Official Schiphol schedule:** [Schiphol Flight API](https://developer.schiphol.nl) (optional)
 - **Weather:** [Open-Meteo](https://open-meteo.com) (CC BY 4.0) · **Space station:** [CelesTrak](https://celestrak.org) + satellite.js
+- **World map for flight tracking:** [Natural Earth](https://www.naturalearthdata.com) (public domain) via world-atlas, drawn with [d3-geo](https://d3js.org/d3-geo) (ISC)
 - **Map:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, via [OpenFreeMap](https://openfreemap.org)
 - **Airline logos:** loaded at runtime from public logo services; they remain the property of their owners.
 
