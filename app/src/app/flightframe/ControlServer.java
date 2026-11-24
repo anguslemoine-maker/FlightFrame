@@ -56,6 +56,7 @@ final class ControlServer extends Thread {
                 ss = new ServerSocket(port);
                 ss.setReuseAddress(true);
                 MainActivity.log("phone control on port " + port);
+                Remote.start(ctx, this);
                 while (running) {
                     final Socket s = ss.accept();
                     new Thread(new Runnable() { public void run() { handle(s); } }).start();
@@ -104,29 +105,8 @@ final class ControlServer extends Thread {
             String given = hdr.containsKey("x-pin") ? hdr.get("x-pin") : param(q, "pin");
             if (pin.length() > 0 && !pin.equals(given) && !p.equals("/api/ping")) { json(s, 401, "{\"error\":\"pin\"}"); return; }
         }
-        if (p.equals("/api/ping")) { json(s, 200, "{\"ok\":true,\"app\":\"flightframe\",\"version\":\"" + BuildInfo.VERSION + "\",\"pin\":" + (Settings.get(ctx).optString("pin").length() > 0) + "}"); return; }
-        if (p.equals("/api/state")) { json(s, 200, state().toString()); return; }
-        if (p.equals("/api/settings") && m.equals("POST")) {
-            JSONObject patch = new JSONObject(new String(body, "UTF-8"));
-            JSONObject sch = patch.optJSONObject("schiphol");
-            if (sch != null && "********".equals(sch.optString("secret"))) sch.remove("secret");
-            if ("set".equals(patch.optString("pin"))) patch.remove("pin");
-            boolean display = Settings.update(ctx, patch);
-            applyAfterChange(display);
-            json(s, 200, "{\"ok\":true,\"reloaded\":" + display + "}");
-            return;
-        }
-        if (p.equals("/api/action") && m.equals("POST")) {
-            JSONObject a = new JSONObject(new String(body, "UTF-8"));
-            json(s, 200, action(a.optString("action"), a).toString());
-            return;
-        }
-        if (p.equals("/api/screenshot.jpg")) {
-            byte[] img = MainActivity.screenshot(Math.max(200, Math.min(1080, intParam(q, "w", 540))));
-            if (img == null) { send(s, 503, "text/plain", "display not running".getBytes()); return; }
-            send(s, 200, "image/jpeg", img);
-            return;
-        }
+        Object[] ar = apiCall(m, p, q, body);
+        if (ar != null) { send(s, (Integer) ar[0], (String) ar[1], (byte[]) ar[2], "Cache-Control: no-store\r\n"); return; }
         if (p.equals("/api/file") && m.equals("POST")) {
             String name = param(q, "name");
             if (!name.matches("^[A-Za-z0-9_.-]{1,64}$") || name.startsWith(".")) { json(s, 400, "{\"error\":\"bad name\"}"); return; }
@@ -137,7 +117,6 @@ final class ControlServer extends Thread {
             json(s, 200, "{\"ok\":true}");
             return;
         }
-        if (p.equals("/api/log")) { synchronized (MainActivity.log) { send(s, 200, "text/plain; charset=utf-8", MainActivity.log.toString().getBytes("UTF-8")); } return; }
         if (p.equals("/api/backup")) {
             String json = Settings.get(ctx).toString(2);
             send(s, 200, "application/json", json.getBytes("UTF-8"), "Content-Disposition: attachment; filename=\"flightframe-settings.json\"\r\n");
@@ -163,6 +142,38 @@ final class ControlServer extends Thread {
             return;
         }
         send(s, 404, "text/plain", "not found".getBytes());
+    }
+
+
+    private static Object[] res(int code, String type, byte[] b) { return new Object[]{code, type, b}; }
+    private static Object[] js(int code, String body) throws Exception { return res(code, "application/json; charset=utf-8", body.getBytes("UTF-8")); }
+
+    /** The API calls shared by the local server and remote access. Returns {status, type, body} or null if not an API call handled here. */
+    Object[] apiCall(String m, String p, String q, byte[] body) throws Exception {
+        if (p.equals("/api/ping")) return js(200, "{\"ok\":true,\"app\":\"flightframe\",\"version\":\"" + BuildInfo.VERSION + "\",\"pin\":" + (Settings.get(ctx).optString("pin").length() > 0) + "}");
+        if (p.equals("/api/state")) return js(200, state().toString());
+        if (p.equals("/api/settings") && m.equals("POST")) {
+            JSONObject patch = new JSONObject(new String(body, "UTF-8"));
+            JSONObject sch = patch.optJSONObject("schiphol");
+            if (sch != null && "********".equals(sch.optString("secret"))) sch.remove("secret");
+            if ("set".equals(patch.optString("pin"))) patch.remove("pin");
+            JSONObject rem = patch.optJSONObject("remote");
+            if (rem != null && rem.optBoolean("enabled") && Settings.get(ctx).optJSONObject("remote") != null && Settings.get(ctx).optJSONObject("remote").optString("id").length() < 8) rem.put("id", Remote.newId());
+            boolean display = Settings.update(ctx, patch);
+            applyAfterChange(display);
+            return js(200, "{\"ok\":true,\"reloaded\":" + display + "}");
+        }
+        if (p.equals("/api/action") && m.equals("POST")) {
+            JSONObject a = new JSONObject(new String(body, "UTF-8"));
+            return js(200, action(a.optString("action"), a).toString());
+        }
+        if (p.equals("/api/screenshot.jpg")) {
+            byte[] img = MainActivity.screenshot(Math.max(200, Math.min(1080, intParam(q, "w", 540))));
+            if (img == null) return res(503, "text/plain", "display not running".getBytes());
+            return res(200, "image/jpeg", img);
+        }
+        if (p.equals("/api/log")) { synchronized (MainActivity.log) { return res(200, "text/plain; charset=utf-8", MainActivity.log.toString().getBytes("UTF-8")); } }
+        return null;
     }
 
     private void applyAfterChange(final boolean reloadDisplay) {
@@ -260,6 +271,8 @@ final class ControlServer extends Thread {
         try { String t = Web.read(new File("/sys/class/thermal/thermal_zone0/temp")).trim(); if (t.length() > 0) { double v = Double.parseDouble(t); x.put("tempC", v > 1000 ? v / 1000 : v); } } catch (Exception ignored) {}
         st.put("status", x);
         try { st.put("wifi", WifiGuard.summary(ctx)); } catch (Exception ignored) {}
+        JSONObject rm = Settings.get(ctx).optJSONObject("remote");
+        st.put("remote", new JSONObject().put("status", Remote.status).put("id", rm == null ? "" : rm.optString("id")).put("lastUse", Remote.lastMsg));
         try { st.put("display", new JSONObject(MainActivity.lastReport)); } catch (Exception e) { st.put("display", new JSONObject()); }
         st.put("displayAgo", MainActivity.lastReportAt == 0 ? -1 : (System.currentTimeMillis() - MainActivity.lastReportAt) / 1000);
         File map = new File(Web.dir(ctx), "radarmap.js");

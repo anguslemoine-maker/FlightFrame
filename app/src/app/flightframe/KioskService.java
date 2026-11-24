@@ -23,6 +23,7 @@ public class KioskService extends Service {
     static final long started = android.os.SystemClock.elapsedRealtime();
     private ControlServer server;
     private PowerManager.WakeLock cpu;
+    private android.net.wifi.WifiManager.WifiLock wifiLock;
     private final Handler h = new Handler(Looper.getMainLooper());
     private Boolean lastScheduled = null;
 
@@ -40,6 +41,11 @@ public class KioskService extends Service {
         }
         cpu = ((PowerManager) getSystemService(Context.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "flightframe:cpu");
         cpu.acquire();
+        try {   // keep wifi fully awake even while the screen is off (remote access at night, no reconnect delay in the morning)
+            android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            wifiLock = wm.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "flightframe:wifi");
+            wifiLock.setReferenceCounted(false); wifiLock.acquire();
+        } catch (Exception e) { MainActivity.log("wifi lock: " + e); }
         server = new ControlServer(this, 8080);
         server.start();
         h.postDelayed(tick, 5000);
@@ -58,6 +64,7 @@ public class KioskService extends Service {
     @Override public void onDestroy() {
         if (server != null) server.shutdown();
         if (cpu != null && cpu.isHeld()) cpu.release();
+        if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
         instance = null;
         super.onDestroy();
     }

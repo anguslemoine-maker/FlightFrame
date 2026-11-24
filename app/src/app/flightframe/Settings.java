@@ -15,7 +15,7 @@ public final class Settings {
     private static JSONObject cur;
 
     /** Keys that only the app uses; changing them does not reload the display. */
-    static final String[] APP_ONLY = {"brightness", "brightnessNight", "schedule", "pin", "frameName", "keepAwake", "updateBase", "screenOffMode"};
+    static final String[] APP_ONLY = {"brightness", "brightnessNight", "schedule", "pin", "frameName", "keepAwake", "updateBase", "screenOffMode", "remote"};
 
     static JSONObject defaults() {
         try {
@@ -68,6 +68,7 @@ public final class Settings {
             d.put("schedule", s);
             d.put("screenOffMode", "auto");   // auto | lock | dim
             d.put("pin", "");
+            JSONObject rmt = new JSONObject(); rmt.put("enabled", false); rmt.put("id", ""); d.put("remote", rmt);
             d.put("updateBase", "");
             return d;
         } catch (Exception e) { throw new RuntimeException(e); }

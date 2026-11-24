@@ -14,6 +14,7 @@
 :root{--bg:#0b0f16;--card:#131a24;--card2:#19212d;--line:#232d3b;--text:#eef2f7;--dim:#8b96a6;--faint:#566173;--acc:#ffb238;--cyan:#4fd1ff;--green:#5be38a;--red:#ff6b6b}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,"Segoe UI",sans-serif}
+body.remote .localonly,body.remote #backup,body.remote label.btn:has(#restore),body.remote #mapUp,body.remote #mapFiles{display:none!important}
 body{padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 92px)}
 h1{font-size:28px;margin:6px 2px 2px;letter-spacing:-.5px}
 .sub{color:var(--dim);font-size:14px;margin:0 2px 14px;display:flex;align-items:center;gap:8px}
@@ -181,6 +182,12 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overfl
     <div class="row"><div class="l">Schiphol app ID<small>Optional: official routes for Schiphol flights</small></div><input type="text" data-k="schiphol.id" autocomplete="off"></div>
     <div class="row"><div class="l">Schiphol secret</div><input type="password" data-k="schiphol.secret" autocomplete="off"></div>
   </div>
+  <div class="card localonly"><h2>Remote access</h2>
+    <div class="note" style="margin-top:0">Control the frame from anywhere, without installing anything. Messages go through a free relay (ntfy.sh), encrypted with your PIN, so nobody else can read or send them.</div>
+    <div class="row"><div class="l">Allow remote access<small id="remSt">Needs a PIN (below) of at least 4 characters</small></div><label class="sw"><input type="checkbox" data-k="remote.enabled"><span></span></label></div>
+    <div id="remLink" style="display:none"><div class="note">Open this link on your phone once, then Add to Home Screen. Use the same PIN.</div>
+      <div class="row"><input type="text" id="remUrl" readonly style="max-width:none;font-size:13px"><button class="btn" id="remShare">Share</button></div></div>
+  </div>
   <div class="card"><h2>Frame</h2>
     <div class="row"><div class="l">Frame name</div><input type="text" data-k="frameName"></div>
     <div class="row"><div class="l">PIN for this app<small>Empty = no PIN</small></div><input type="password" inputmode="numeric" id="pinSet" placeholder="none"></div>
@@ -217,7 +224,49 @@ const THEMES={midnight:['Midnight','#07090d','#ffb238'],departures:['Departures'
 const ACCENTS=['','#ffb238','#4fd1ff','#5be38a','#ff6b6b','#c084fc','#ffd23f','#ffffff'];
 
 function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove('on'),2200) }
+// ---- transport: direct on home wifi, or through the encrypted relay when away ----
+const REMOTE_APP='https://anguslemoine-maker.github.io/FlightFrame/app/', RELAY='https://ntfy.sh/';
+const REMOTE=!/^(\d+\.){3}\d+$|\.local$|^localhost$/.test(location.hostname) || location.protocol==='https:';
+let RID=''; if(REMOTE){ const m=location.hash.match(/r=([\w]+)/); if(m){ RID=m[1]; localStorage.setItem('ff_rid',RID); history.replaceState(null,'',location.pathname) } else RID=localStorage.getItem('ff_rid')||'' }
+let rkey=null, rkeyFor='', es=null; const waiting={};
+const b64=u=>{ let s=''; u=new Uint8Array(u); for(let i=0;i<u.length;i+=8192) s+=String.fromCharCode.apply(null,u.subarray(i,i+8192)); return btoa(s) };
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function remoteKey(){
+  if(rkey&&rkeyFor===pin+'|'+RID) return rkey;
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveKey']);
+  rkey=await crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('flightframe:'+RID),iterations:150000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  rkeyFor=pin+'|'+RID; return rkey;
+}
+async function enc(obj){ const k=await remoteKey(), iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,new TextEncoder().encode(JSON.stringify(obj)));
+  const all=new Uint8Array(12+ct.byteLength); all.set(iv); all.set(new Uint8Array(ct),12); return b64(all) }
+async function dec(t){ const k=await remoteKey(), all=unb64(t.trim());
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:all.slice(0,12)},k,all.slice(12)))) }
+function listen(){
+  if(es) return; es=new EventSource(RELAY+'ffr-'+RID+'-s/sse');
+  es.onmessage=async ev=>{ try{ const m=JSON.parse(ev.data); let body=m.message;
+    if(m.attachment&&m.attachment.url) body=await fetch(m.attachment.url).then(r=>r.text());
+    const r=await dec(body); const w=waiting[r.r]; if(w){ delete waiting[r.r]; w(r) } }catch(e){} };
+}
+async function remoteCall(path,opt){
+  listen();
+  const rid=Math.random().toString(36).slice(2)+Date.now().toString(36);
+  const msg=await enc({r:rid,t:Date.now(),m:opt.method||'GET',p:'/api/'+path,b:typeof opt.body==='string'?opt.body:''});
+  const p=new Promise((ok,bad)=>{ waiting[rid]=ok; setTimeout(()=>{ if(waiting[rid]){ delete waiting[rid]; bad(new Error('noanswer')) } },20000) });
+  await fetch(RELAY+'ffr-'+RID+'-c',{method:'POST',body:msg});
+  const r=await p, bytes=unb64(r.b);
+  if(r.s===401) { showGate(); throw new Error('pin') }
+  if(r.s!==200) throw new Error(new TextDecoder().decode(bytes));
+  if(/json/.test(r.ct)) return JSON.parse(new TextDecoder().decode(bytes));
+  if(/image/.test(r.ct)) return URL.createObjectURL(new Blob([bytes],{type:r.ct}));
+  return new TextDecoder().decode(bytes);
+}
 async function api(path,opt={}){
+  if(REMOTE){
+    if(!RID) throw new Error('nolink');
+    if(!pin){ showGate(); throw new Error('pin') }
+    return remoteCall(path,opt);
+  }
   opt.headers=Object.assign({'X-PIN':pin},opt.headers||{});
   const r=await fetch('api/'+path,opt);
   if(r.status===401){ showGate(); throw new Error('pin') }
@@ -244,6 +293,8 @@ function fill(){
   $('#days').innerHTML=['M','T','W','T','F','S','S'].map((x,i)=>`<span class="${d[i]?'on':''}" data-d="${i}">${x}</span>`).join('');
   const b=S.brightness; $('#brAuto').checked=b<0; $('#br').disabled=b<0; $('#br').value=b<0?60:b; $('#brV').textContent=b<0?'Auto':b+'%';
   $('#nlV').textContent=(S.nightLevel||0)+'%';
+  const rm=ST.remote||{}; $('#remSt').textContent=(S.remote&&S.remote.enabled)?('Status: '+(rm.status||'…')+(rm.lastUse?' · last used '+new Date(rm.lastUse).toLocaleString():'')):(S.pin==='set'?'Off':'Needs a PIN (below) of at least 4 characters');
+  if(S.remote&&S.remote.enabled&&rm.id){ $('#remLink').style.display=''; $('#remUrl').value=REMOTE_APP+'#r='+rm.id } else $('#remLink').style.display='none';
   $('#pinSet').placeholder=S.pin==='set'?'••••  (set)':'none';
   let m=null; try{ m=JSON.parse(ST.mapFile||'null') }catch(e){}
   $('#mapNote').textContent = m ? (dist(m.lat,m.lon,S.lat,S.lon)>1 ? 'The radar map is for a different place, so it is hidden. Upload a new map below.' : 'The radar map matches this location.') : 'No radar map yet.';
@@ -253,7 +304,7 @@ function dist(a,b,c,d){ const R=6371,r=x=>x*Math.PI/180, x=r(c-a), y=r(d-b), h=M
 function status(){
   const s=ST.status||{}, dsp=ST.display||{};
   const on=s.screenOn; $('#bScreen').classList.toggle('on',!!on); $('#bScreen span').textContent=on?'Screen on':'Screen off';
-  $('#conn').className='dot ok'; $('#connTxt').textContent=(s.ssid?s.ssid+' · ':'')+(dsp.count!=null?dsp.count+' aircraft nearby':'connected');
+  $('#conn').className='dot ok'; $('#connTxt').textContent=(REMOTE?'Away · via secure relay · ':'')+(s.ssid&&!REMOTE?s.ssid+' · ':'')+(dsp.count!=null?dsp.count+' aircraft nearby':'connected');
   const up=t=>t>86400?Math.floor(t/86400)+'d '+Math.floor(t%86400/3600)+'h':t>3600?Math.floor(t/3600)+'h '+Math.floor(t%3600/60)+'m':Math.floor(t/60)+'m';
   const kv=[['Screen',on?'On':'Off'+(s.screenMethod?' ('+s.screenMethod+')':'')],['Schedule says',s.scheduledOn==null?'No schedule':(s.scheduledOn?'On':'Off')],
     ['Wifi',(s.ssid||'?')+(s.rssi?' · '+s.rssi+' dBm':'')+(s.freqMHz?' · '+(s.freqMHz>4000?'5':'2.4')+' GHz':'')],['Address',s.ip+':8080'],
@@ -270,10 +321,12 @@ function status(){
 
 async function load(){
   try{ ST=await api('state'); S=ST.settings; fill(); status() }
-  catch(e){ if(e.message!=='pin'){ $('#conn').className='dot bad'; $('#connTxt').textContent='Can\'t reach the frame — same wifi?' } }
+  catch(e){ if(e.message!=='pin'){ $('#conn').className='dot bad'; $('#connTxt').textContent=REMOTE?(e.message==='noanswer'?'No answer: frame offline, or wrong PIN':'Can\'t reach the relay'):'Can\'t reach the frame — same wifi?'; if(REMOTE&&e.message==='noanswer') showGate() } }
 }
 async function refresh(){ try{ ST=await api('state'); if(!Object.keys(dirty).length){ S=ST.settings } status(); if(page!=='home') {} }catch(e){ $('#conn').className='dot bad'; $('#connTxt').textContent='Can\'t reach the frame' } }
-function shot(){ if(page!=='home'||document.hidden) return; const im=new Image(); const t=Date.now();
+async function shot(force){ if(page!=='home'||document.hidden) return;
+  if(REMOTE){ if(!force&&Date.now()-(shot.at||0)<60000) return; shot.at=Date.now(); try{ const u=await api('screenshot.jpg?w=540'); $('#shot').src=u; $('#shotAge').textContent='just now · tap to refresh' }catch(e){} return }
+  const im=new Image(); const t=Date.now();
   im.onload=()=>{ $('#shot').src=im.src; $('#shotAge').textContent='live' }; im.src='api/screenshot.jpg?w=720&pin='+encodeURIComponent(pin)+'&t='+t }
 
 // events
@@ -296,6 +349,7 @@ $('#brAuto').onchange=e=>{ setPatch('brightness',e.target.checked?-1:+$('#br').v
 $('#br').oninput=e=>{ $('#brV').textContent=e.target.value+'%' };
 $('#br').onchange=e=>{ setPatch('brightness',+e.target.value) };
 $('#pinSet').onchange=e=>{ const v=e.target.value.trim(); setPatch('pin',v); pin=v; localStorage.setItem('ff_pin',v); e.target.value=''; toast(v?'PIN set':'PIN removed') };
+$('#remShare').onclick=()=>{ const u=$('#remUrl').value; if(navigator.share) navigator.share({title:'Flight Frame',url:u}).catch(()=>{}); else { $('#remUrl').select(); document.execCommand('copy'); toast('Link copied') } };
 $('#logBtn').onclick=async()=>{ const l=$('#log'); l.hidden=!l.hidden; if(!l.hidden) l.textContent=await api('log') };
 $('#backup').onclick=e=>{ e.preventDefault(); location.href='api/backup?pin='+encodeURIComponent(pin) };
 $('#restore').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ await api('restore',{method:'POST',body:await f.text()}); toast('Settings restored'); load() }catch(err){ toast('Restore failed') } };
@@ -310,7 +364,9 @@ $('#here').onclick=()=>{ if(!navigator.geolocation) return toast('Location not a
 $('#mapUp').onclick=async()=>{ const fs=Array.from($('#mapFiles').files); if(!fs.length) return toast('Choose radarmap.jpg and radarmap.js');
   for(const f of fs){ const name=/\.js$/i.test(f.name)?'radarmap.js':'radarmap.jpg'; await api('file?name='+name,{method:'POST',body:await f.arrayBuffer()}) } toast('Map uploaded'); load() };
 
-load(); setInterval(refresh,5000); setInterval(shot,6000); setTimeout(shot,800);
+if(REMOTE){ document.body.classList.add('remote'); $('#shot').onclick=()=>shot(true) }
+if(REMOTE&&!RID){ $('#connTxt').textContent='Open the remote link from your frame first (Frame → Remote access)'; }
+else { load(); setInterval(refresh,REMOTE?30000:5000); setInterval(shot,REMOTE?60000:6000); setTimeout(()=>shot(true),REMOTE?2500:800); }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ refresh(); shot() } });
 })();
 </script>

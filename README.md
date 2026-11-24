@@ -85,3 +85,6 @@ adb root && adb remount
 adb shell cp /system/media/bootanimation.zip /data/local/tmp/bootanimation_original.zip   # backup
 adb push bootanimation.zip /system/media/bootanimation.zip
 ```
+
+### Remote access (away from home)
+In the phone app: **Frame → set a PIN → Remote access → on**, then open the link it shows on your phone and *Add to Home Screen*. The frame and phone talk through the free [ntfy.sh](https://ntfy.sh) relay; every message is encrypted (AES-256-GCM, key derived from your PIN and the frame's secret id), so the relay can't read or fake anything. Nothing is opened on your router. Uploading maps and backups only work at home.
