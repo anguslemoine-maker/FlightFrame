@@ -21,8 +21,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Remote access without opening the home network: the frame listens on a private ntfy.sh topic.
- * Every message is AES-256-GCM encrypted with a key derived from the PIN and the frame's secret remote id
- * (PBKDF2-SHA256, 150 000 rounds), so the relay only ever sees scrambled data.
+ * Every message is AES-256-GCM encrypted with the secret key in the remote link (never sent to any server);
+ * if a PIN is set, the key is stretched with it (PBKDF2-SHA256, 150 000 rounds). The relay only ever sees scrambled data.
  *   phone -> https://ntfy.sh/ffr-<id>-c   {"r":reqId,"t":time,"m":method,"p":path,"b":body}
  *   frame -> https://ntfy.sh/ffr-<id>-s   {"r":reqId,"s":status,"ct":type,"b":base64 body}
  */
@@ -42,10 +42,17 @@ final class Remote {
         return Base64.encodeToString(b, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING).replace('-', 'x').replace('_', 'y');
     }
 
-    static synchronized byte[] key(String pin, String id) throws Exception {
-        String k = pin + "|" + id;
+    static String newKey() {
+        byte[] b = new byte[32]; new SecureRandom().nextBytes(b);
+        return Base64.encodeToString(b, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+    }
+
+    /** The link's secret key is the AES key; with an (optional) PIN the key is stretched together with the PIN. */
+    static synchronized byte[] key(String pin, String id, String linkKey) throws Exception {
+        String k = pin + "|" + id + "|" + linkKey;
         if (k.equals(keyFor) && key != null) return key;
-        key = pbkdf2(pin.getBytes("UTF-8"), ("flightframe:" + id).getBytes("UTF-8"), ROUNDS);
+        byte[] lk = Base64.decode(linkKey, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+        key = pin.length() == 0 ? lk : pbkdf2(pin.getBytes("UTF-8"), ("flightframe:" + id + ":" + linkKey).getBytes("UTF-8"), ROUNDS);
         keyFor = k;
         return key;
     }
@@ -86,12 +93,11 @@ final class Remote {
                     JSONObject s = Settings.get(ctx);
                     JSONObject r = s.optJSONObject("remote");
                     String pin = s.optString("pin", "");
-                    if (r == null || !r.optBoolean("enabled") || r.optString("id").length() < 8 || pin.length() < 4) {
-                        status = pin.length() < 4 && r != null && r.optBoolean("enabled") ? "needs a PIN" : "off";
-                        Thread.sleep(10000); continue;
+                    if (r == null || !r.optBoolean("enabled") || r.optString("id").length() < 8 || r.optString("key").length() < 32) {
+                        status = "off"; Thread.sleep(10000); continue;
                     }
-                    String id = r.optString("id");
-                    byte[] k = key(pin, id);
+                    String id = r.optString("id"), lk = r.optString("key");
+                    byte[] k = key(pin, id, lk);
                     status = "connecting";
                     HttpURLConnection h = (HttpURLConnection) new URL(RELAY + "ffr-" + id + "-c/json?since=" + (System.currentTimeMillis() / 1000 - 60)).openConnection();
                     h.setConnectTimeout(15000); h.setReadTimeout(90000);   // ntfy sends keepalives every ~45 s
@@ -103,7 +109,7 @@ final class Remote {
                         if (!"message".equals(ev.optString("event"))) continue;
                         // settings may have changed (new PIN / remote switched off): reconnect
                         JSONObject s2 = Settings.get(ctx), r2 = s2.optJSONObject("remote");
-                        if (r2 == null || !r2.optBoolean("enabled") || !id.equals(r2.optString("id")) || !pin.equals(s2.optString("pin"))) break;
+                        if (r2 == null || !r2.optBoolean("enabled") || !id.equals(r2.optString("id")) || !lk.equals(r2.optString("key")) || !pin.equals(s2.optString("pin"))) break;
                         handle(ctx, api, k, id, ev.optString("message"));
                     }
                     in.close(); h.disconnect();
@@ -133,7 +139,7 @@ final class Remote {
             Object[] res = api.apiCall(q.optString("m", "GET"), path, query, body);
             reply(k, id, rid, (Integer) res[0], (String) res[1], (byte[]) res[2]);
         } catch (javax.crypto.AEADBadTagException e) {
-            MainActivity.log("remote: message with wrong PIN ignored");
+            MainActivity.log("remote: message with a wrong key or PIN ignored");
         } catch (Exception e) {
             MainActivity.log("remote: " + e);
         }

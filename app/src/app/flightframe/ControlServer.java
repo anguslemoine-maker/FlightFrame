@@ -158,7 +158,9 @@ final class ControlServer extends Thread {
             if (sch != null && "********".equals(sch.optString("secret"))) sch.remove("secret");
             if ("set".equals(patch.optString("pin"))) patch.remove("pin");
             JSONObject rem = patch.optJSONObject("remote");
-            if (rem != null && rem.optBoolean("enabled") && Settings.get(ctx).optJSONObject("remote") != null && Settings.get(ctx).optJSONObject("remote").optString("id").length() < 8) rem.put("id", Remote.newId());
+            if (rem != null) { rem.remove("id"); rem.remove("key"); }   // the link is only made by the frame
+            JSONObject cur = Settings.get(ctx).optJSONObject("remote");
+            if (rem != null && rem.optBoolean("enabled") && (cur == null || cur.optString("id").length() < 8 || cur.optString("key").length() < 32)) { rem.put("id", Remote.newId()); rem.put("key", Remote.newKey()); }
             boolean display = Settings.update(ctx, patch);
             applyAfterChange(display);
             return js(200, "{\"ok\":true,\"reloaded\":" + display + "}");
@@ -218,6 +220,12 @@ final class ControlServer extends Thread {
             case "reboot":
                 if (!Screen.hasRoot() || !Screen.run("reboot")) { r.put("ok", false).put("error", "Rebooting needs root on this frame"); }
                 break;
+            case "new_remote_link": {
+                JSONObject p = new JSONObject().put("remote", new JSONObject().put("enabled", true).put("id", Remote.newId()).put("key", Remote.newKey()));
+                Settings.update(ctx, p);
+                MainActivity.log("remote: new link made, old link no longer works");
+                break;
+            }
             case "reset":
                 Settings.replace(ctx, new JSONObject());
                 applyAfterChange(true);
@@ -272,7 +280,7 @@ final class ControlServer extends Thread {
         st.put("status", x);
         try { st.put("wifi", WifiGuard.summary(ctx)); } catch (Exception ignored) {}
         JSONObject rm = Settings.get(ctx).optJSONObject("remote");
-        st.put("remote", new JSONObject().put("status", Remote.status).put("id", rm == null ? "" : rm.optString("id")).put("lastUse", Remote.lastMsg));
+        st.put("remote", new JSONObject().put("status", Remote.status).put("id", rm == null ? "" : rm.optString("id")).put("key", rm == null ? "" : rm.optString("key")).put("lastUse", Remote.lastMsg));
         try { st.put("display", new JSONObject(MainActivity.lastReport)); } catch (Exception e) { st.put("display", new JSONObject()); }
         st.put("displayAgo", MainActivity.lastReportAt == 0 ? -1 : (System.currentTimeMillis() - MainActivity.lastReportAt) / 1000);
         File map = new File(Web.dir(ctx), "radarmap.js");

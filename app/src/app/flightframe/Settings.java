@@ -68,7 +68,7 @@ public final class Settings {
             d.put("schedule", s);
             d.put("screenOffMode", "auto");   // auto | lock | dim
             d.put("pin", "");
-            JSONObject rmt = new JSONObject(); rmt.put("enabled", false); rmt.put("id", ""); d.put("remote", rmt);
+            JSONObject rmt = new JSONObject(); rmt.put("enabled", false); rmt.put("id", ""); rmt.put("key", ""); d.put("remote", rmt);
             d.put("updateBase", "");
             return d;
         } catch (Exception e) { throw new RuntimeException(e); }
@@ -146,6 +146,7 @@ public final class Settings {
         s.put("pin", s.optString("pin").length() > 0 ? "set" : "");
         JSONObject sch = s.optJSONObject("schiphol");
         if (sch != null && sch.optString("secret").length() > 0) sch.put("secret", "********");
+        JSONObject rm = s.optJSONObject("remote"); if (rm != null) rm.remove("key");
         return s;
     }
 
