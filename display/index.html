@@ -37,6 +37,11 @@
 
   #plane{height:230px;margin:10px -20px 0;}
   #plane svg{width:100%;height:100%;display:block}
+  #plane .liv{height:100%;display:flex;justify-content:flex-end;align-items:flex-end;overflow:visible;padding:0 24px 18px 0;box-sizing:border-box}
+  #plane.hasliv{overflow:visible}
+  #plane .livbox{position:relative}
+  #plane .livbox .lv{width:100%;height:auto;display:block;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
+  #plane .livbox .tl{position:absolute;transform:translate(-50%,-50%);object-fit:contain;border-radius:4px}
   .route{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;margin-top:4px}
   .apt .code{font-size:84px;font-weight:700;line-height:1;color:var(--amber)}
   .apt .city{font-size:24px;color:var(--dim);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -298,6 +303,7 @@
     <div class="tfoot"><span id="tFootL"></span><span class="tpill" id="tFootR"></span></div>
   </div>
   <script src="planes.js"></script>
+  <script src="../planes/manifest.js" onerror="void 0"></script>
   <script src="settings.js"></script>
   <script src="schiphol.js"></script>
   <script src="radarmap.js"></script>
@@ -1093,6 +1099,59 @@
   }
   function photoUrl(ac){ return ac&&(ac.url_photo||ac.url_photo_thumbnail)||'' }
 
+  // ---- airline livery images (stored on the frame next to the page, not in the app or on GitHub) ----
+  var LIV_BASE='../planes/';
+  var LIV_AL={KLM:'klm',KLC:'klm',MPH:'martinair',TRA:'transavia',TVF:'transavia',EZY:'easyjet',EJU:'easyjet',EZS:'easyjet',BAW:'ba',CFE:'ba',EFW:'ba',SHT:'ba',
+    DLH:'lufthansa',CLH:'lufthansa',LHX:'lufthansa',GEC:'lhcargo',AFR:'airfrance',HOP:'airfrance',DAL:'delta',SAS:'sas',SZS:'sas',VLG:'vueling',SWR:'swiss',
+    TFL:'tui',TOM:'tui',JAF:'tui',EIN:'aerlingus',EAI:'aerlingus',TAP:'tap',BTI:'airbaltic',RAM:'ram',KQA:'kenya',CPA:'cathay',UAE:'emirates',ITY:'ita',
+    THY:'turkish',IBE:'iberia',IBS:'iberiaexpress',WZZ:'wizz',WMT:'wizz',WUK:'wizz',WAZ:'wizz',EWG:'eurowings',EWE:'eurowings',QTR:'qatar',CAI:'corendon',
+    CND:'corendon',CXI:'corendon',NOZ:'norwegian',NSZ:'norwegian',NAX:'norwegian',AUA:'austrian',BEL:'brussels',FIN:'finnair',LOT:'lot',PGT:'pegasus',
+    ICE:'icelandair',AEE:'aegean',OAL:'aegean',AEA:'aireuropa',UAL:'united',AAL:'american',ETD:'etihad',SIA:'singapore',CSN:'chinasouthern',KAL:'korean',
+    ACA:'aircanada',CLX:'cargolux',UPS:'ups',DHK:'dhl',BCS:'dhl',DAE:'dhl',DHX:'dhl',BOX:'dhl',GTI:'atlas',NCA:'nca',AZG:'silkway',CKS:'kalitta',SVA:'saudia',
+    SLM:'surinam',ETH:'ethiopian',MAC:'airarabiamaroc',GIA:'garuda',LZB:'bulgaria',ASL:'airserbia',LGL:'luxair',KMM:'kmmalta',MSR:'egyptair',FDX:'fedex',
+    CAL:'chinaairlines',VOE:'volotea',RJA:'royaljordanian',ELY:'elal',IGO:'indigo',CES:'chinaeastern',CCA:'airchina',CXA:'xiamen',CHH:'hainan',SXS:'sunexpress',
+    TKJ:'ajet',TVS:'smartwings',TSC:'airtransat',WJA:'westjet',RYR:'ryanair',RUK:'ryanair',MAY:'ryanair',LDM:'ryanair',BUZ:'ryanair',TAR:'tunisair',
+    CTN:'croatia',JBU:'jetblue',EXS:'jet2',EDW:'edelweiss',FDB:'flydubai',GFA:'gulfair',OMA:'omanair',KAC:'kuwait',AIC:'airindia',THA:'thai',MAS:'malaysia',
+    AAR:'asiana',ANA:'ana',JAL:'jal',CKK:'chinacargo',ABR:'asl',TAY:'asl',AIZ:'arkia',ISR:'israir',KZR:'airastana',SRR:'starair',CRL:'corsair',EVA:'eva',
+    CFG:'condor',WIF:'wideroe',DAH:'airalgerie',UZB:'uzbekistan',AHY:'azal',OCN:'discover',MBU:'marabu',OAW:'helvetic',ART:'smartlynx',ENT:'enterair',
+    SDR:'sundair',LOG:'loganair',FLI:'atlantic',DLA:'airdolomiti',SEH:'skyexpress',MNB:'mng',ABD:'airatlanta',CHG:'challenge',NBT:'norse',NAA:'norse',
+    FBU:'frenchbee',FWI:'aircaraibes',NOS:'neos',AEZ:'aeroitalia',ROT:'tarom',MNE:'airmontenegro',KNE:'flynas',JZR:'jazeera',HVN:'vietnam',PAL:'philippine',
+    AMX:'aeromexico',LAN:'latam',TAM:'latam',LPE:'latam',AVA:'avianca',CMP:'copa',AZU:'azul',PUE:'plusultra',WFL:'world2fly',CCM:'aircorsica',NVD:'avionexpress'};
+  // airlines that fly freighters (their widebodies are shown without passenger windows)
+  var LIV_CARGO={martinair:1,cargolux:1,ups:1,dhl:1,atlas:1,nca:1,silkway:1,lhcargo:1,kalitta:1,fedex:1,chinacargo:1,asl:1,mng:1,airatlanta:1,challenge:1};
+  var LIV_CARGO_OF={qatar:'qatarcargo',turkish:'turkishcargo'};   // same callsign as the passenger airline
+  var LIV_TYPE={A318:'A319',A319:'A319',A19N:'A319',A320:'A320',A20N:'A20N',A321:'A21N',A21N:'A21N',A332:'A332',A333:'A333',A337:'A330',A338:'A330',A339:'A330',
+    A342:'A330',A343:'A330',A345:'A330',A346:'A330',A359:'A359',A35K:'A359',A388:'A388',B736:'B737',B737:'B737',B738:'B738',B38M:'B738',B739:'B739',B39M:'B739',
+    B37M:'B737',B3XM:'B739',B752:'B752',B753:'B752',B762:'B763',B763:'B763',B764:'B764',B772:'B772',B77L:'B772',B77W:'B77W',B778:'B77W',B779:'B77W',
+    B744:'B748',B748:'B748',B788:'B789',B789:'B789',B78X:'B78X',BCS1:'BCS3',BCS3:'BCS3',CRJ7:'CRJ9',CRJ9:'CRJ9',CRJX:'CRJ9',DH8A:'DH8D',DH8B:'DH8D',
+    DH8C:'DH8D',DH8D:'DH8D',AT43:'AT76',AT45:'AT76',AT46:'AT76',AT72:'AT76',AT75:'AT76',AT76:'AT76',E170:'E75L',E75L:'E75L',E75S:'E75L',E175:'E75L',
+    E190:'E190',E195:'E190',E290:'E295',E295:'E295',A306:'B763',A30B:'B763',MD11:'B772'};
+  var LIV_FREIGHT={B772:'B77F',B748:'B748F',B763:'B763F',B764:'B763F'};
+  var livFail={};
+  function livery(a,icao,cat){
+    var M=window.FF_LIV; if(!M||!a.t) return null;
+    var t=LIV_TYPE[a.t]; if(!t) return null;
+    var f=LIV_AL[icao]||'';
+    if(f && LIV_CARGO_OF[f] && (a.t==='B77L'||a.t==='B744'||a.t==='B748'||(/F$/.test((craft[a.hex]&&craft[a.hex].d&&craft[a.hex].d.type)||'')))) f=LIV_CARGO_OF[f];
+    if(f && (LIV_CARGO[f]||/cargo$/.test(f)) && LIV_FREIGHT[t]) t=LIV_FREIGHT[t];
+    if(t==='A332'||t==='A333'){ if(!(f&&M.airlines[f]&&M.airlines[f].indexOf(t)>=0)) t='A330' }
+    var white=!(f&&M.airlines[f]&&M.airlines[f].indexOf(t)>=0);
+    if(white && cat) return null;                       // private / military etc. keep their own look
+    var dir=white?'_white':f, src=LIV_BASE+dir+'/'+t+'.webp';
+    if(livFail[src]||!M.types[t]&&!M.types[t.replace(/^A33[23]$/,'A330')]) return null;
+    return {src:src,type:t,white:white,info:M.types[t]||M.types.A330};
+  }
+  function showLivery(L,a,icao){
+    var box=$('plane'), W=box.clientWidth||1000, H=(box.clientHeight||230)*1.45;   // may grow into the space around the plane area
+    var len=L.info.len, maxW=Math.min(W*0.98,H*0.98*3.6);   // the longest plane (747, 76 m) gets the full width
+    var w=Math.min(maxW*(0.42+0.58*Math.min(1,len/76.3)), H*0.98*L.info.aspect);
+    var h='<div class="liv"><div class="livbox" style="width:'+Math.round(w)+'px"><img class="lv" src="'+L.src+'">';
+    var iata=FFPlanes.iata(icao);
+    if(L.white && iata){ var t=L.info.tail, s=Math.round(t[2]*w/L.info.aspect);
+      h+='<img class="tl" style="left:'+(t[0]*100)+'%;top:'+(t[1]*100)+'%;width:'+s+'px;height:'+s+'px" src="https://pics.avs.io/al_square/128/128/'+iata+'.png" onerror="this.remove()">' }
+    box.innerHTML=h+'</div></div>'; box.classList.add('hasliv');
+    var img=box.querySelector('img.lv'); img.onerror=function(){ livFail[L.src]=1; planeKey=''; render() };
+  }
   function renderPlane(a,r){
     if(!window.FFPlanes) return;
     var c=cs(a), al=r&&r.airline;
@@ -1106,6 +1165,8 @@
       if(photoOK[u]===true){ planeKey=pk; $('plane').innerHTML='<div class="photo"><img src="'+esc(u)+'"></div>'; return }
       if(photoOK[u]===undefined){ photoOK[u]=null; var im=new Image(); im.onload=function(){ photoOK[u]=im.naturalWidth>40; planeKey=''; render() }; im.onerror=function(){ photoOK[u]=false; planeKey=''; render() }; im.src=u }
     }
+    var L=livery(a,icao,cat);
+    if(L){ var lk='liv|'+L.src+'|'+(L.white?icao:''); if(lk===planeKey) return; planeKey=lk; showLivery(L,a,icao); return }
     if(cat && cat!=='private'){ opts.cat=cat; iata=''; }
     else if(cat==='private' && !FFPlanes.known(icao)){ opts.cat=cat; }
     if(!opts.cat && icao && (!FFPlanes.known(icao) || !iataCode)){ ai=autoInfo(icao) }
@@ -1115,7 +1176,7 @@
     }
     var key=a.hex+'|'+icao+'|'+iata+'|'+a.t+'|'+(opts.tail||'')+'|'+(opts.logoUrl?1:0)+'|'+(opts.cat||'');
     if(key===planeKey) return; planeKey=key;
-    $('plane').innerHTML=FFPlanes.svg(a.t,icao,iata,a.r||'',opts);
+    $('plane').classList.remove('hasliv'); $('plane').innerHTML=FFPlanes.svg(a.t,icao,iata,a.r||'',opts);
   }
 
   function mapLayer(){
