@@ -115,6 +115,12 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--dim);max-height:300px;overfl
   <div class="card list"><h2>Overhead now</h2><div id="flights"><div class="note">Waiting for the display…</div></div></div>
 </section>
 
+<div id="linkGate" style="display:none;position:fixed;inset:0;background:rgba(5,8,12,.94);z-index:50;align-items:center;justify-content:center;padding:24px">
+  <div class="card" style="max-width:420px;width:100%"><h2>Connect to your frame</h2>
+    <div class="note" style="margin-bottom:12px">Paste your personal remote link (it starts with https://anguslemoine-maker.github.io/FlightFrame/app/#r=…). You only need to do this once.</div>
+    <input type="text" id="linkIn" placeholder="Paste link here" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;max-width:none">
+    <div class="note" id="linkMsg" style="color:var(--red)"></div>
+    <button class="btn acc wide" id="linkGo">Connect</button></div></div>
 <!-- TRACK -->
 <section class="page" id="p-track">
   <div id="tNow"></div>
@@ -263,8 +269,9 @@ function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); 
 const REMOTE_APP='https://anguslemoine-maker.github.io/FlightFrame/app/', RELAY='https://ntfy.sh/';
 const REMOTE=!/^(\d+\.){3}\d+$|\.local$|^localhost$/.test(location.hostname) || location.protocol==='https:';
 let RID='', RKEY=''; if(REMOTE){ const m=location.hash.match(/r=([\w]+)/), k=location.hash.match(/k=([\w-]+)/);
-  if(m&&k){ RID=m[1]; RKEY=k[1]; localStorage.setItem('ff_rid',RID); localStorage.setItem('ff_rkey',RKEY); localStorage.removeItem('ff_pin'); pin=''; history.replaceState(null,'',location.pathname) }
-  else { RID=localStorage.getItem('ff_rid')||''; RKEY=localStorage.getItem('ff_rkey')||'' } }
+  if(m&&k){ RID=m[1]; RKEY=k[1]; localStorage.setItem('ff_rid',RID); localStorage.setItem('ff_rkey',RKEY); localStorage.removeItem('ff_pin'); pin='' }
+  else { RID=localStorage.getItem('ff_rid')||''; RKEY=localStorage.getItem('ff_rkey')||'';
+    if(RID&&RKEY) history.replaceState(null,'',location.pathname+'#r='+RID+'&k='+RKEY) } }
 let rkey=null, rkeyFor='', es=null; const waiting={};
 const b64=u=>{ let s=''; u=new Uint8Array(u); for(let i=0;i<u.length;i+=8192) s+=String.fromCharCode.apply(null,u.subarray(i,i+8192)); return btoa(s) };
 const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
@@ -302,7 +309,7 @@ async function remoteCall(path,opt){
 }
 async function api(path,opt={}){
   if(REMOTE){
-    if(!RID||!RKEY) throw new Error('nolink');
+    if(!RID||!RKEY){ showLinkGate(); throw new Error('nolink') }
     return remoteCall(path,opt);
   }
   opt.headers=Object.assign({'X-PIN':pin},opt.headers||{});
@@ -312,7 +319,13 @@ async function api(path,opt={}){
   const ct=r.headers.get('content-type')||''; return ct.includes('json')?r.json():r.text();
 }
 const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+function showLinkGate(){ $('#linkGate').style.display='flex' }
+function useLink(t){ const m=(t||'').match(/r=([\w]+)/), k=(t||'').match(/k=([\w-]+)/);
+  if(!m||!k){ $('#linkMsg').textContent='That doesn\'t look like a Flight Frame link.'; return }
+  RID=m[1]; RKEY=k[1]; localStorage.setItem('ff_rid',RID); localStorage.setItem('ff_rkey',RKEY);
+  history.replaceState(null,'',location.pathname+'#r='+RID+'&k='+RKEY); $('#linkGate').style.display='none'; start() }
 function showGate(){ $('#gate').style.display='flex'; $('#pinIn').focus() }
+$('#linkGo').onclick=()=>useLink($('#linkIn').value);
 $('#pinGo').onclick=()=>{ pin=$('#pinIn').value; localStorage.setItem('ff_pin',pin); $('#gate').style.display='none'; load() };
 
 function get(o,k){ return k.split('.').reduce((a,b)=>a==null?a:a[b],o) }
@@ -467,8 +480,10 @@ $('#tGo').onclick=()=>tFind(); $('#tQ').onkeydown=e=>{ if(e.key==='Enter') tFind
 document.addEventListener('click',e=>{ const c=e.target.closest('[data-tq]'); if(c) tFind(c.dataset.tq) });
 
 if(REMOTE){ document.body.classList.add('remote'); $('#shot').onclick=()=>shot(true) }
-if(REMOTE&&(!RID||!RKEY)){ $('#connTxt').textContent='Open the remote link from your frame first (Frame → Remote access)'; }
-else { load(); setInterval(refresh,REMOTE?30000:5000); setInterval(shot,REMOTE?60000:6000); setTimeout(()=>shot(true),REMOTE?2500:800); }
+let started=false;
+function start(){ if(started) return; started=true; load(); setInterval(refresh,REMOTE?30000:5000); setInterval(shot,REMOTE?60000:6000); setTimeout(()=>shot(true),REMOTE?2500:800); }
+if(REMOTE&&(!RID||!RKEY)){ $('#connTxt').textContent='Not connected yet'; showLinkGate() }
+else start();
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ refresh(); shot() } });
 })();
 </script>
