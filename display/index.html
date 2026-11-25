@@ -524,7 +524,7 @@
         a.km=hav(HOME.lat,HOME.lon,a.lat,a.lon); return a;
       }).filter(function(a){ return a.km<=CFG.radiusKm+0.5 }).sort(function(a,b){return a.km-b.km});
       $('status').textContent=lastData.length+' aircraft within '+dist(CFG.radiusKm,0);
-      trackHist(lastData);
+      trackHist(lastData); missLog(lastData);
       report();
       $('status').style.color='';
       render();
@@ -1141,6 +1141,31 @@
     if(livFail[src]||!M.types[t]&&!M.types[t.replace(/^A33[23]$/,'A330')]) return null;
     return {src:src,type:t,white:white,info:M.types[t]||M.types.A330};
   }
+  // ---- log of aircraft seen without their own livery image (kept on the frame, read via /api/state) ----
+  var MISS={}; try{ MISS=JSON.parse(localStorage.getItem('ff_misslog')||'{}') }catch(e){ MISS={} }
+  var missSeen={};
+  function missLog(list){
+    var now=Date.now(), changed=false;
+    list.forEach(function(a){
+      if(!a.t||a.alt_baro==='ground') return;
+      if(missSeen[a.hex]&&now-missSeen[a.hex]<6*3600e3) return;      // count each aircraft once per 6 hours
+      var c=cs(a), icao=/^[A-Z]{3}\d/.test(c)?c.slice(0,3):'', cat=category(a,null,craft[a.hex]&&craft[a.hex].st==='ok'?craft[a.hex].d:null);
+      var t=LIV_TYPE[a.t], f=LIV_AL[icao]||'', why='';
+      if(cat==='private') why='private';
+      else if(cat) why='military/government';
+      else if(!t) why='type without image';
+      else if(!f) why='airline without livery';
+      if(!why) return;
+      missSeen[a.hex]=now;
+      var k=(icao||'-')+'|'+a.t+'|'+why, e=MISS[k]||(MISS[k]={n:0,first:now,ex:''});
+      e.n++; e.last=now; e.ex=c||a.r||a.hex; changed=true;
+    });
+    if(changed){ try{ localStorage.setItem('ff_misslog',JSON.stringify(MISS)) }catch(e){} }
+  }
+  function missSummary(){
+    return Object.keys(MISS).map(function(k){ var p=k.split('|'), e=MISS[k]; return {airline:p[0],type:p[1],why:p[2],count:e.n,example:e.ex,first:e.first,last:e.last} })
+      .sort(function(a,b){ return b.count-a.count }).slice(0,400);
+  }
   function showLivery(L,a,icao){
     var box=$('plane'), W=box.clientWidth||1000, H=(box.clientHeight||230)*1.18;   // may grow into the space around the plane area
     var len=L.info.len, maxW=Math.min(W*0.98,H*0.98*3.6);   // the longest plane (747, 76 m) gets the full width
@@ -1225,6 +1250,7 @@
     if(!(window.FFApp&&FFApp.report)) return;
     try{ FFApp.report(JSON.stringify({t:Date.now(),count:lastData.length,featured:featured,
       track:(typeof tReport==='function'?tReport():null),
+      missing:missSummary(),
       flights:lastData.slice(0,12).map(function(a){ var c=cs(a), r=routes[c]&&routes[c].d; return {cs:c,reg:a.r||'',type:a.t||'',alt:a.alt_baro,km:Math.round(a.km*10)/10,
         from:r&&r.origin?r.origin.iata_code:'',to:r&&r.destination?r.destination.iata_code:''} })})) }catch(e){}
   }
